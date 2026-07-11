@@ -46,6 +46,17 @@ pnpm preview
 - TTS 使用浏览器 `SpeechSynthesis`，可用声音取决于操作系统和浏览器。
 - Obsidian 第一版采用 Markdown 下载；下载后放入 Vault 即可。
 
+## 项目结构
+
+- `src/domain`：领域模型、学习规则、Session 与周报计算
+- `src/data`：版本化 localStorage Repository 和旧数据迁移
+- `src/services`：语音、Markdown 与文件下载等浏览器服务
+- `src/components`：应用外壳和共享导航组件
+- `src/pages`：按功能拆分的页面组件
+- `src/App.tsx`：只负责状态装配、页面切换和应用级交互
+
+localStorage 当前使用带 `version` 的数据信封；旧版直接保存的状态会在加载时自动迁移。
+
 ## 下一步接入建议
 
 1. 增加后端账户、跨设备同步和 PostgreSQL 数据模型。
@@ -56,8 +67,8 @@ pnpm preview
 
 ## 开发路线与 Git 分支
 
-项目的逐步完善计划见 `ROADMAP.md`。采用“一项优化一个分支”。已完成可编辑名字、学习偏好联动与多日学习记录，下一阶段分支为：
+项目的逐步完善计划见 `ROADMAP.md`。采用“一项优化一个分支”。已完成可编辑名字、学习偏好联动、多日学习记录和领域数据层拆分，下一阶段分支为：
 
 ```text
-refactor/domain-data-layer
+chore/test-foundation
 ```
