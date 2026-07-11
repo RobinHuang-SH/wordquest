@@ -15,37 +15,77 @@ import { SettingsPage } from './pages/SettingsPage'
 import './styles.css'
 
 function App() {
-  const [state,setState]=useState<AppState>(loadAppState)
-  const [page,setPage]=useState<Page>('home')
-  const [onboarding,setOnboarding]=useState(1)
-  const [toast,setToast]=useState('')
-  const [menuOpen,setMenuOpen]=useState(false)
+  const [state, setState] = useState<AppState>(loadAppState)
+  const [page, setPage] = useState<Page>('home')
+  const [onboarding, setOnboarding] = useState(1)
+  const [toast, setToast] = useState('')
+  const [menuOpen, setMenuOpen] = useState(false)
 
-  useEffect(()=>saveAppState(state),[state])
-  useEffect(()=>{if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{})},[])
+  useEffect(() => saveAppState(state), [state])
+  useEffect(() => {
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {})
+  }, [])
 
-  const patch=(next:Partial<AppState>)=>setState(current=>({...current,...next}))
-  const notify=(text:string)=>{setToast(text);window.setTimeout(()=>setToast(''),2400)}
-  const completeToday=(storyChoice:string)=>setState(current=>completeDailySession(current,storyChoice))
-  const previousSession=getPreviousSession(state)
+  const patch = (next: Partial<AppState>) => setState((current) => ({ ...current, ...next }))
+  const notify = (text: string) => {
+    setToast(text)
+    window.setTimeout(() => setToast(''), 2400)
+  }
+  const completeToday = (storyChoice: string) =>
+    setState((current) => completeDailySession(current, storyChoice))
+  const previousSession = getPreviousSession(state)
 
-  if(!state.onboarded) return <Onboarding step={onboarding} setStep={setOnboarding} state={state} patch={patch}/>
+  if (!state.onboarded)
+    return <Onboarding step={onboarding} setStep={setOnboarding} state={state} patch={patch} />
 
-  return <div className="app-shell">
-    <Sidebar page={page} setPage={setPage} state={state}/>
-    <main className="main">
-      <MobileHeader setPage={setPage} menuOpen={menuOpen} setMenuOpen={setMenuOpen}/>
-      {menuOpen&&<MobileMenu page={page} setPage={next=>{setPage(next);setMenuOpen(false)}}/>}
-      {page==='home'&&<Dashboard state={state} learnedCount={Object.keys(state.learned).length} previousSession={previousSession} setPage={setPage} notify={notify}/>}
-      {page==='learn'&&<Learn state={state} patch={patch} setPage={setPage} notify={notify}/>}
-      {page==='quiz'&&<Quiz state={state} patch={patch} setPage={setPage}/>}
-      {page==='story'&&<Story state={state} completeToday={completeToday} previousSession={previousSession} setPage={setPage} notify={notify}/>}
-      {page==='library'&&<Vocabulary state={state}/>}
-      {page==='report'&&<Report state={state} notify={notify}/>}
-      {page==='settings'&&<SettingsPage state={state} patch={patch} notify={notify}/>}
-    </main>
-    {toast&&<div className="toast"><CheckCircle2 size={18}/>{toast}</div>}
-  </div>
+  return (
+    <div className="app-shell">
+      <Sidebar page={page} setPage={setPage} state={state} />
+      <main className="main">
+        <MobileHeader setPage={setPage} menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
+        {menuOpen && (
+          <MobileMenu
+            page={page}
+            setPage={(next) => {
+              setPage(next)
+              setMenuOpen(false)
+            }}
+          />
+        )}
+        {page === 'home' && (
+          <Dashboard
+            state={state}
+            learnedCount={Object.keys(state.learned).length}
+            previousSession={previousSession}
+            setPage={setPage}
+            notify={notify}
+          />
+        )}
+        {page === 'learn' && (
+          <Learn state={state} patch={patch} setPage={setPage} notify={notify} />
+        )}
+        {page === 'quiz' && <Quiz state={state} patch={patch} setPage={setPage} />}
+        {page === 'story' && (
+          <Story
+            state={state}
+            completeToday={completeToday}
+            previousSession={previousSession}
+            setPage={setPage}
+            notify={notify}
+          />
+        )}
+        {page === 'library' && <Vocabulary state={state} />}
+        {page === 'report' && <Report state={state} notify={notify} />}
+        {page === 'settings' && <SettingsPage state={state} patch={patch} notify={notify} />}
+      </main>
+      {toast && (
+        <div className="toast">
+          <CheckCircle2 size={18} />
+          {toast}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default App

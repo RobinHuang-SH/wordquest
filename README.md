@@ -16,6 +16,7 @@
 - 学习周报、周故事和下周建议
 - 每日学习记录导出为 Obsidian Markdown
 - PWA manifest、Service Worker 与响应式移动布局
+- Vitest 单元/组件测试、Playwright 关键流程测试、ESLint、Prettier 与 CI
 
 ## 技术栈
 
@@ -29,6 +30,18 @@ pnpm dev
 ```
 
 浏览器访问 `http://localhost:5173/`。
+
+## 质量检查
+
+```powershell
+pnpm lint
+pnpm format:check
+pnpm test
+pnpm test:e2e
+pnpm build
+```
+
+单元测试覆盖选词、计分、Session、数据迁移、故事词汇覆盖和 Markdown 导出；Playwright 覆盖改名持久化、同日故事记录更新及移动端横向溢出。
 
 ## 生产构建
 
@@ -67,8 +80,8 @@ localStorage 当前使用带 `version` 的数据信封；旧版直接保存的�
 
 ## 开发路线与 Git 分支
 
-项目的逐步完善计划见 `ROADMAP.md`。采用“一项优化一个分支”。已完成可编辑名字、学习偏好联动、多日学习记录和领域数据层拆分，下一阶段分支为：
+项目的逐步完善计划见 `ROADMAP.md`。采用“一项优化一个分支”。已完成可编辑名字、学习偏好联动、多日学习记录、领域数据层拆分和自动化质量基础，下一阶段分支为：
 
 ```text
-chore/test-foundation
+feature/offline-pwa
 ```

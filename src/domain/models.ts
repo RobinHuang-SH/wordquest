@@ -1,9 +1,9 @@
 import type { StoryLength, Word } from '../data'
 
-export type Page = 'home'|'learn'|'quiz'|'story'|'library'|'report'|'settings'
-export type Knowledge = 'know'|'fuzzy'|'new'
-export type WordMix = '20+0'|'15+5'|'10+10'|'dynamic'
-export type DailyMinutes = 15|20|30
+export type Page = 'home' | 'learn' | 'quiz' | 'story' | 'library' | 'report' | 'settings'
+export type Knowledge = 'know' | 'fuzzy' | 'new'
+export type WordMix = '20+0' | '15+5' | '10+10' | 'dynamic'
+export type DailyMinutes = 15 | 20 | 30
 
 export type User = {
   displayName: string
