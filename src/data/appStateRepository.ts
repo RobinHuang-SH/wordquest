@@ -7,6 +7,7 @@ import {
 } from '../domain/sessions'
 
 const STORAGE_KEY = 'wordquest-state'
+const BACKUP_KEY = 'wordquest-state-backup'
 export const APP_STATE_SCHEMA_VERSION = 2
 
 type PersistedEnvelope = { version: number; state: Partial<AppState> }
@@ -31,8 +32,8 @@ function unwrapPersistedState(raw: unknown): PersistedEnvelope {
 }
 
 function runMigrations(snapshot: PersistedEnvelope): Partial<AppState> {
-  let version = snapshot.version,
-    state = snapshot.state
+  let version = snapshot.version
+  let state = snapshot.state
   while (version < APP_STATE_SCHEMA_VERSION) {
     state = (migrations[version] || ((current) => current))(state)
     version += 1
@@ -41,8 +42,8 @@ function runMigrations(snapshot: PersistedEnvelope): Partial<AppState> {
 }
 
 function normalizeState(candidate: Partial<AppState>): AppState {
-  const initial = createInitialState(),
-    today = getDateKey()
+  const initial = createInitialState()
+  const today = getDateKey()
   const merged = {
     ...initial,
     ...candidate,
@@ -58,23 +59,60 @@ function normalizeState(candidate: Partial<AppState>): AppState {
   return resetForNewDay(merged, today)
 }
 
+function parseState(raw: string) {
+  return migrateAppState(JSON.parse(raw))
+}
+
 export function migrateAppState(raw: unknown): AppState {
   return normalizeState(runMigrations(unwrapPersistedState(raw)))
 }
 
 export function loadAppState(): AppState {
+  const current = localStorage.getItem(STORAGE_KEY)
+  if (!current) return normalizeState({})
   try {
-    return migrateAppState(JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'))
+    return parseState(current)
   } catch {
-    return normalizeState({})
+    const backup = localStorage.getItem(BACKUP_KEY)
+    if (!backup) return normalizeState({})
+    try {
+      const recovered = parseState(backup)
+      localStorage.setItem(STORAGE_KEY, backup)
+      return recovered
+    } catch {
+      return normalizeState({})
+    }
   }
 }
 
 export function saveAppState(state: AppState) {
   const envelope: PersistedEnvelope = { version: APP_STATE_SCHEMA_VERSION, state }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(envelope))
+  const next = JSON.stringify(envelope)
+  const current = localStorage.getItem(STORAGE_KEY)
+  if (current && current !== next) {
+    try {
+      JSON.parse(current)
+      localStorage.setItem(BACKUP_KEY, current)
+    } catch {
+      // Keep the last valid backup when the primary snapshot is damaged.
+    }
+  }
+  localStorage.setItem(STORAGE_KEY, next)
+}
+
+export function restoreAppStateBackup() {
+  const backup = localStorage.getItem(BACKUP_KEY)
+  if (!backup) return false
+  try {
+    JSON.parse(backup)
+    localStorage.setItem(STORAGE_KEY, backup)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function clearAppState() {
   localStorage.removeItem(STORAGE_KEY)
+  localStorage.removeItem(BACKUP_KEY)
 }

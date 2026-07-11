@@ -5,6 +5,7 @@ import {
   clearAppState,
   loadAppState,
   migrateAppState,
+  restoreAppStateBackup,
   saveAppState,
 } from './appStateRepository'
 
@@ -94,6 +95,23 @@ describe('local storage repository', () => {
       state,
     })
     expect(loadAppState().displayName).toBe('Noah')
+  })
+
+  it('recovers automatically from a damaged primary snapshot', () => {
+    saveAppState(makeState({ displayName: 'Previous' }))
+    saveAppState(makeState({ displayName: 'Current' }))
+    localStorage.setItem(storageKey, '{damaged')
+
+    expect(loadAppState().displayName).toBe('Previous')
+    expect(JSON.parse(localStorage.getItem(storageKey) ?? '{}').state.displayName).toBe('Previous')
+  })
+
+  it('can restore the previous valid snapshot manually', () => {
+    saveAppState(makeState({ displayName: 'Previous' }))
+    saveAppState(makeState({ displayName: 'Current' }))
+
+    expect(restoreAppStateBackup()).toBe(true)
+    expect(loadAppState().displayName).toBe('Previous')
   })
 
   it('clears persisted state', () => {

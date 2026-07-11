@@ -12,6 +12,8 @@ import { Story } from './pages/Story'
 import { Vocabulary } from './pages/Vocabulary'
 import { Report } from './pages/Report'
 import { SettingsPage } from './pages/SettingsPage'
+import { PwaStatus } from './components/PwaStatus'
+import { usePwaLifecycle } from './services/pwa'
 import './styles.css'
 
 function App() {
@@ -20,11 +22,9 @@ function App() {
   const [onboarding, setOnboarding] = useState(1)
   const [toast, setToast] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const pwa = usePwaLifecycle()
 
   useEffect(() => saveAppState(state), [state])
-  useEffect(() => {
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {})
-  }, [])
 
   const patch = (next: Partial<AppState>) => setState((current) => ({ ...current, ...next }))
   const notify = (text: string) => {
@@ -76,8 +76,11 @@ function App() {
         )}
         {page === 'library' && <Vocabulary state={state} />}
         {page === 'report' && <Report state={state} notify={notify} />}
-        {page === 'settings' && <SettingsPage state={state} patch={patch} notify={notify} />}
+        {page === 'settings' && (
+          <SettingsPage state={state} patch={patch} notify={notify} pwa={pwa} />
+        )}
       </main>
+      <PwaStatus pwa={pwa} />
       {toast && (
         <div className="toast">
           <CheckCircle2 size={18} />

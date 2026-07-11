@@ -1,4 +1,4 @@
-﻿# WordQuest 迭代路线图
+# WordQuest 迭代路线图
 
 本项目采用“小步迭代、一项优化一个 Git 分支”的方式持续完善。每个分支必须通过 `pnpm build`，完成浏览器主流程验证后再合并到 `main`。
 
@@ -62,14 +62,14 @@ main（稳定可运行）
 - Playwright 关键用户流程测试
 - ESLint、格式化和 CI 构建脚本
 
-### 1.2 `feature/offline-pwa`（下一阶段）
+### 1.2 `feature/offline-pwa`（已完成）
 
 - 完整应用壳与静态资源缓存
 - 离线状态提示
 - 安装引导
 - 缓存升级和数据恢复策略
 
-### 1.3 `feature/accessibility`
+### 1.3 `feature/accessibility`（下一阶段）
 
 - 键盘操作与快捷键
 - 焦点状态、ARIA 标签、对比度优化

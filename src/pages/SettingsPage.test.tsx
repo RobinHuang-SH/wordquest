@@ -17,7 +17,21 @@ describe('SettingsPage', () => {
         patchSpy(next)
         setState((current) => ({ ...current, ...next }))
       }
-      return <SettingsPage state={state} patch={patch} notify={vi.fn()} />
+      return (
+        <SettingsPage
+          state={state}
+          patch={patch}
+          notify={vi.fn()}
+          pwa={{
+            online: true,
+            installed: false,
+            installAvailable: false,
+            updateReady: false,
+            requestInstall: vi.fn(),
+            applyUpdate: vi.fn(),
+          }}
+        />
+      )
     }
 
     render(<Harness />)

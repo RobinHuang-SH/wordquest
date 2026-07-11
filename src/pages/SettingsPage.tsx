@@ -1,19 +1,35 @@
-﻿import { BookOpen, Cloud, Download, Settings, WandSparkles } from 'lucide-react'
+import { useState } from 'react'
+import {
+  BookOpen,
+  Cloud,
+  Download,
+  RefreshCw,
+  Settings,
+  Smartphone,
+  WandSparkles,
+  Wifi,
+  WifiOff,
+} from 'lucide-react'
 import type { AppState, DailyMinutes, StoryLength, WordMix } from '../domain/models'
-import { clearAppState } from '../data/appStateRepository'
+import { clearAppState, restoreAppStateBackup } from '../data/appStateRepository'
 import { makeMarkdown } from '../services/markdown'
 import { downloadText } from '../services/download'
 import { Logo } from '../components/AppShell'
+import type { PwaLifecycle } from '../services/pwa'
 
 export function SettingsPage({
   state,
   patch,
   notify,
+  pwa,
 }: {
   state: AppState
   patch: (p: Partial<AppState>) => void
   notify: (s: string) => void
+  pwa: PwaLifecycle
 }) {
+  const [installHelp, setInstallHelp] = useState(false)
+
   return (
     <div className="page settings-page">
       <header className="page-title">
@@ -153,6 +169,69 @@ export function SettingsPage({
             </select>
           </label>
         </section>
+        <section className="panel settings-section pwa-settings">
+          <h3>
+            <Smartphone />
+            应用与离线
+          </h3>
+          <div className={`pwa-health ${pwa.online ? 'online' : 'offline'}`}>
+            {pwa.online ? <Wifi /> : <WifiOff />}
+            <span>
+              <b>{pwa.online ? '当前在线' : '当前离线'}</b>
+              <small>
+                {pwa.online
+                  ? '应用壳和学习内容会自动更新缓存。'
+                  : '可以继续使用已缓存内容，学习进度仍保存在本机。'}
+              </small>
+            </span>
+          </div>
+          <label>
+            <span>
+              <b>安装状态</b>
+              <small>{pwa.installed ? '已作为独立应用运行' : '安装后可从桌面或主屏幕启动'}</small>
+            </span>
+            {pwa.installAvailable ? (
+              <button
+                aria-label="安装应用"
+                className="outline"
+                onClick={() => void pwa.requestInstall()}
+              >
+                <Download />
+                安装应用
+              </button>
+            ) : (
+              <button
+                aria-label={installHelp ? '收起安装方法' : '查看安装方法'}
+                className="outline"
+                onClick={() => setInstallHelp((shown) => !shown)}
+              >
+                <Smartphone />
+                {installHelp ? '收起方法' : '查看安装方法'}
+              </button>
+            )}
+          </label>
+          {pwa.updateReady && (
+            <label>
+              <span>
+                <b>应用更新</b>
+                <small>新版本已缓存，本地学习记录不会被清除</small>
+              </span>
+              <button className="outline" onClick={pwa.applyUpdate}>
+                <RefreshCw />
+                立即更新
+              </button>
+            </label>
+          )}
+          {installHelp && (
+            <div className="install-guide">
+              <b>安装方法</b>
+              <ol>
+                <li>Chrome / Edge：打开浏览器菜单，选择“安装词境英语”。</li>
+                <li>iPhone / iPad Safari：点击“分享”，再选择“添加到主屏幕”。</li>
+              </ol>
+            </div>
+          )}
+        </section>
         <section className="panel settings-section">
           <h3>
             <Cloud />
@@ -172,6 +251,26 @@ export function SettingsPage({
             >
               <Download />
               导出今日笔记
+            </button>
+          </label>
+          <label>
+            <span>
+              <b>数据恢复</b>
+              <small>应用会保留上一份有效快照，用于缓存升级或数据损坏后的恢复</small>
+            </span>
+            <button
+              className="outline"
+              onClick={() => {
+                if (!restoreAppStateBackup()) {
+                  notify('暂时没有可恢复的本地备份')
+                  return
+                }
+                notify('已恢复上一份有效备份，正在重新加载')
+                window.setTimeout(() => location.reload(), 400)
+              }}
+            >
+              <RefreshCw />
+              恢复备份
             </button>
           </label>
           <label>
