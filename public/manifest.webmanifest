@@ -1,0 +1,10 @@
+{
+  "name": "词境英语 WordQuest",
+  "short_name": "词境英语",
+  "description": "每天学 20 个词，把它们变成属于你的英语故事。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f0e7",
+  "theme_color": "#173f36",
+  "icons": []
+}
