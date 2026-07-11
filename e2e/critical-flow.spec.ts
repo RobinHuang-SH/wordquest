@@ -80,3 +80,40 @@ test('mobile shell does not overflow horizontally', async ({ page }) => {
   }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
 })
+
+test('production app shell and learning state remain available offline', async ({
+  page,
+  context,
+}) => {
+  await page.evaluate(() => navigator.serviceWorker.ready)
+  if (!(await page.evaluate(() => Boolean(navigator.serviceWorker.controller)))) {
+    await page.reload({ waitUntil: 'domcontentloaded' })
+  }
+  await expect
+    .poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller)))
+    .toBe(true)
+
+  try {
+    await context.setOffline(true)
+    await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false)
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+    await expect(page.getByText('Mia', { exact: true }).first()).toBeVisible()
+    await expect(page.getByRole('status')).toContainText('当前处于离线模式')
+  } finally {
+    await context.setOffline(false)
+  }
+})
+
+test('settings provides install guidance and generated cache metadata', async ({ page }) => {
+  const serviceWorker = await page.request.get('/sw.js')
+  const source = await serviceWorker.text()
+  expect(source).toContain('wordquest-precache-')
+  expect(source).toContain('/assets/')
+  expect(source).toContain('/icons/icon-512.png')
+
+  await page.getByRole('button', { name: '设置', exact: true }).click()
+  await page.getByRole('button', { name: /查看安装方法/ }).click()
+  await expect(page.getByText(/Chrome/)).toBeVisible()
+  await expect(page.getByText(/添加到主屏幕/)).toBeVisible()
+})

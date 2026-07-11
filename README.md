@@ -1,4 +1,4 @@
-﻿# 词境英语 · WordQuest MVP
+# 词境英语 · WordQuest MVP
 
 基于《AI 故事英语学习软件 PRD》实现的移动端优先 PWA 原型。
 
@@ -15,7 +15,9 @@
 - 个人词库、掌握度与复习状态
 - 学习周报、周故事和下周建议
 - 每日学习记录导出为 Obsidian Markdown
-- PWA manifest、Service Worker 与响应式移动布局
+- 可安装 PWA、完整应用壳预缓存、离线提示与版本更新引导
+- localStorage 有效快照备份、损坏自动恢复与设置页手动恢复
+- 响应式移动布局
 - Vitest 单元/组件测试、Playwright 关键流程测试、ESLint、Prettier 与 CI
 
 ## 技术栈
@@ -41,7 +43,7 @@ pnpm test:e2e
 pnpm build
 ```
 
-单元测试覆盖选词、计分、Session、数据迁移、故事词汇覆盖和 Markdown 导出；Playwright 覆盖改名持久化、同日故事记录更新及移动端横向溢出。
+单元测试覆盖选词、计分、Session、数据迁移与备份恢复、故事词汇覆盖、PWA 状态组件和 Markdown 导出；Playwright 覆盖改名持久化、同日故事记录更新、移动端横向溢出、生产应用离线重载以及安装引导。
 
 ## 生产构建
 
@@ -50,11 +52,15 @@ pnpm build
 pnpm preview
 ```
 
-生产文件输出至 `dist/`。
+生产文件输出至 `dist/`。构建末尾会扫描全部产物、计算内容版本，并生成 `dist/sw.js`；新版本会使用独立的预缓存与运行时缓存，激活后清理旧版 WordQuest 缓存。
+
+首次在线打开并完成 Service Worker 安装后，应用壳、脚本、样式、manifest 和图标可离线使用。设置页的“应用与离线”区域提供安装方法、更新入口和连接状态说明。
 
 ## 数据说明
 
-- 学习状态保存在浏览器 `localStorage` 的 `wordquest-state` 中。
+- 当前学习状态保存在浏览器 `localStorage` 的 `wordquest-state` 中。
+- 上一份有效状态保存在 `wordquest-state-backup` 中；主状态损坏时会自动恢复，也可在设置页手动恢复。
+- 更新 Service Worker 或清理旧缓存不会删除以上学习数据；“重置数据”会同时清除主状态与备份。
 - 录音只生成浏览器会话内的本地 Blob URL，不上传服务器。
 - TTS 使用浏览器 `SpeechSynthesis`，可用声音取决于操作系统和浏览器。
 - Obsidian 第一版采用 Markdown 下载；下载后放入 Vault 即可。
@@ -80,8 +86,8 @@ localStorage 当前使用带 `version` 的数据信封；旧版直接保存的�
 
 ## 开发路线与 Git 分支
 
-项目的逐步完善计划见 `ROADMAP.md`。采用“一项优化一个分支”。已完成可编辑名字、学习偏好联动、多日学习记录、领域数据层拆分和自动化质量基础，下一阶段分支为：
+项目的逐步完善计划见 `ROADMAP.md`。采用“一项优化一个分支”。已完成可编辑名字、学习偏好联动、多日学习记录、领域数据层拆分、自动化质量基础和离线 PWA，下一阶段分支为：
 
 ```text
-feature/offline-pwa
+feature/accessibility
 ```
