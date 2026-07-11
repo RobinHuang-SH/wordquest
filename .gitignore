@@ -10,3 +10,8 @@ outputs/
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
+
+# Test output
+coverage/
+playwright-report/
+test-results/

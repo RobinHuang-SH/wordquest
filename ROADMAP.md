@@ -55,14 +55,14 @@ main（稳定可运行）
 
 ## 阶段 1：质量与可维护性
 
-### 1.1 `chore/test-foundation`（下一阶段）
+### 1.1 `chore/test-foundation`（已完成）
 
 - Vitest + React Testing Library
 - 单词选择、测试计分、故事覆盖、Markdown 导出单元测试
 - Playwright 关键用户流程测试
 - ESLint、格式化和 CI 构建脚本
 
-### 1.2 `feature/offline-pwa`
+### 1.2 `feature/offline-pwa`（下一阶段）
 
 - 完整应用壳与静态资源缓存
 - 离线状态提示

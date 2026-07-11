@@ -5,7 +5,199 @@ import { makeMarkdown } from '../services/markdown'
 import { downloadText } from '../services/download'
 import { Logo } from '../components/AppShell'
 
-export function SettingsPage({state,patch,notify}:{state:AppState,patch:(p:Partial<AppState>)=>void,notify:(s:string)=>void}) {
-  return <div className="page settings-page"><header className="page-title"><div><p className="eyebrow">PREFERENCES</p><h1>设置</h1><p>调整你的学习节奏、故事与数据方式。</p></div></header><div className="settings-grid"><section className="panel settings-section profile-settings"><h3><Settings/>个人资料</h3><label><span><b>你的名字</b><small>用于首页问候、侧边栏与学习笔记</small></span><div className="name-editor"><input aria-label="你的名字" value={state.displayName} maxLength={20} placeholder="输入你的名字" onChange={e=>patch({displayName:e.target.value})} onBlur={()=>patch({displayName:state.displayName.trim() || "学习者"})}/><span>{state.displayName.length}/20</span></div></label><div className="profile-preview"><div className="avatar">{state.displayName.trim().charAt(0).toUpperCase() || "W"}</div><div><b>{state.displayName || "学习者"}</b><small>你的个性化问候会立即更新</small></div></div></section><section className="panel settings-section"><h3><BookOpen/>学习设置</h3><label><span><b>英语等级</b><small>控制单词和故事难度</small></span><select value={state.level} onChange={e=>patch({level:e.target.value})}><option>A1</option><option>A2</option><option>B1</option><option>B2</option></select></label><label><span><b>每日目标</b><small>固定 20 词，调整新词与复习比例</small></span><select value={state.wordMix} onChange={e=>patch({wordMix:e.target.value as WordMix})}><option value="15+5">15 新词 + 5 复习</option><option value="20+0">20 个新词</option><option value="10+10">10 新词 + 10 复习</option><option value="dynamic">AI 动态安排</option></select></label><label><span><b>每日学习时间</b><small>用于首页计划时长与学习节奏</small></span><select value={state.dailyMinutes} onChange={e=>patch({dailyMinutes:Number(e.target.value) as DailyMinutes})}><option value={15}>15 分钟</option><option value={20}>20 分钟</option><option value={30}>30 分钟</option></select></label><label><span><b>发音偏好</b><small>用于单词与故事朗读</small></span><div className="segment"><button className={state.accent==='美式'?'active':''} onClick={()=>patch({accent:'美式'})}>美式</button><button className={state.accent==='英式'?'active':''} onClick={()=>patch({accent:'英式'})}>英式</button></div></label></section><section className="panel settings-section"><h3><WandSparkles/>故事设置</h3><label><span><b>长期故事类型</b><small>每天的剧情会持续推进</small></span><select value={state.genre} onChange={e=>patch({genre:e.target.value})}><option>奇幻冒险</option><option>科幻探索</option><option>都市生活</option><option>悬疑推理</option></select></label><label><span><b>故事长度</b><small>适合 {state.level} 水平</small></span><select value={state.storyLength} onChange={e=>patch({storyLength:e.target.value as StoryLength})}><option value="short">短 · 100—180 词</option><option value="medium">标准 · 180—300 词</option><option value="long">长 · 300—500 词</option></select></label></section><section className="panel settings-section"><h3><Cloud/>Obsidian 与数据</h3><label><span><b>导出模式</b><small>第一版使用安全的本地 Markdown 下载</small></span><button className="outline" onClick={()=>{downloadText('WordQuest-今日学习.md',makeMarkdown(state));notify('今日笔记已导出')}}><Download/>导出今日笔记</button></label><label><span><b>本地数据</b><small>学习记录保存在当前浏览器</small></span><button className="outline danger" onClick={()=>{if(confirm('确定重置所有演示数据？')){clearAppState();location.reload()}}}>重置数据</button></label></section><section className="panel settings-section about"><Logo/><p>每天学 20 个词，把它们变成属于你的英语故事。</p><span>WordQuest MVP · 本地优先版本</span></section></div></div>
+export function SettingsPage({
+  state,
+  patch,
+  notify,
+}: {
+  state: AppState
+  patch: (p: Partial<AppState>) => void
+  notify: (s: string) => void
+}) {
+  return (
+    <div className="page settings-page">
+      <header className="page-title">
+        <div>
+          <p className="eyebrow">PREFERENCES</p>
+          <h1>设置</h1>
+          <p>调整你的学习节奏、故事与数据方式。</p>
+        </div>
+      </header>
+      <div className="settings-grid">
+        <section className="panel settings-section profile-settings">
+          <h3>
+            <Settings />
+            个人资料
+          </h3>
+          <label>
+            <span>
+              <b>你的名字</b>
+              <small>用于首页问候、侧边栏与学习笔记</small>
+            </span>
+            <div className="name-editor">
+              <input
+                aria-label="你的名字"
+                value={state.displayName}
+                maxLength={20}
+                placeholder="输入你的名字"
+                onChange={(e) => patch({ displayName: e.target.value })}
+                onBlur={() => patch({ displayName: state.displayName.trim() || '学习者' })}
+              />
+              <span>{state.displayName.length}/20</span>
+            </div>
+          </label>
+          <div className="profile-preview">
+            <div className="avatar">{state.displayName.trim().charAt(0).toUpperCase() || 'W'}</div>
+            <div>
+              <b>{state.displayName || '学习者'}</b>
+              <small>你的个性化问候会立即更新</small>
+            </div>
+          </div>
+        </section>
+        <section className="panel settings-section">
+          <h3>
+            <BookOpen />
+            学习设置
+          </h3>
+          <label>
+            <span>
+              <b>英语等级</b>
+              <small>控制单词和故事难度</small>
+            </span>
+            <select value={state.level} onChange={(e) => patch({ level: e.target.value })}>
+              <option>A1</option>
+              <option>A2</option>
+              <option>B1</option>
+              <option>B2</option>
+            </select>
+          </label>
+          <label>
+            <span>
+              <b>每日目标</b>
+              <small>固定 20 词，调整新词与复习比例</small>
+            </span>
+            <select
+              value={state.wordMix}
+              onChange={(e) => patch({ wordMix: e.target.value as WordMix })}
+            >
+              <option value="15+5">15 新词 + 5 复习</option>
+              <option value="20+0">20 个新词</option>
+              <option value="10+10">10 新词 + 10 复习</option>
+              <option value="dynamic">AI 动态安排</option>
+            </select>
+          </label>
+          <label>
+            <span>
+              <b>每日学习时间</b>
+              <small>用于首页计划时长与学习节奏</small>
+            </span>
+            <select
+              value={state.dailyMinutes}
+              onChange={(e) => patch({ dailyMinutes: Number(e.target.value) as DailyMinutes })}
+            >
+              <option value={15}>15 分钟</option>
+              <option value={20}>20 分钟</option>
+              <option value={30}>30 分钟</option>
+            </select>
+          </label>
+          <label>
+            <span>
+              <b>发音偏好</b>
+              <small>用于单词与故事朗读</small>
+            </span>
+            <div className="segment">
+              <button
+                className={state.accent === '美式' ? 'active' : ''}
+                onClick={() => patch({ accent: '美式' })}
+              >
+                美式
+              </button>
+              <button
+                className={state.accent === '英式' ? 'active' : ''}
+                onClick={() => patch({ accent: '英式' })}
+              >
+                英式
+              </button>
+            </div>
+          </label>
+        </section>
+        <section className="panel settings-section">
+          <h3>
+            <WandSparkles />
+            故事设置
+          </h3>
+          <label>
+            <span>
+              <b>长期故事类型</b>
+              <small>每天的剧情会持续推进</small>
+            </span>
+            <select value={state.genre} onChange={(e) => patch({ genre: e.target.value })}>
+              <option>奇幻冒险</option>
+              <option>科幻探索</option>
+              <option>都市生活</option>
+              <option>悬疑推理</option>
+            </select>
+          </label>
+          <label>
+            <span>
+              <b>故事长度</b>
+              <small>适合 {state.level} 水平</small>
+            </span>
+            <select
+              value={state.storyLength}
+              onChange={(e) => patch({ storyLength: e.target.value as StoryLength })}
+            >
+              <option value="short">短 · 100—180 词</option>
+              <option value="medium">标准 · 180—300 词</option>
+              <option value="long">长 · 300—500 词</option>
+            </select>
+          </label>
+        </section>
+        <section className="panel settings-section">
+          <h3>
+            <Cloud />
+            Obsidian 与数据
+          </h3>
+          <label>
+            <span>
+              <b>导出模式</b>
+              <small>第一版使用安全的本地 Markdown 下载</small>
+            </span>
+            <button
+              className="outline"
+              onClick={() => {
+                downloadText('WordQuest-今日学习.md', makeMarkdown(state))
+                notify('今日笔记已导出')
+              }}
+            >
+              <Download />
+              导出今日笔记
+            </button>
+          </label>
+          <label>
+            <span>
+              <b>本地数据</b>
+              <small>学习记录保存在当前浏览器</small>
+            </span>
+            <button
+              className="outline danger"
+              onClick={() => {
+                if (confirm('确定重置所有演示数据？')) {
+                  clearAppState()
+                  location.reload()
+                }
+              }}
+            >
+              重置数据
+            </button>
+          </label>
+        </section>
+        <section className="panel settings-section about">
+          <Logo />
+          <p>每天学 20 个词，把它们变成属于你的英语故事。</p>
+          <span>WordQuest MVP · 本地优先版本</span>
+        </section>
+      </div>
+    </div>
+  )
 }
-
