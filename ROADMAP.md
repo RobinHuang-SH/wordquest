@@ -39,14 +39,14 @@ main（稳定可运行）
 - 学习时间与每日目标持久化
 - 设置项不再使用仅展示的默认值
 
-### 0.3 `feature/session-history` — 多日学习记录（下一阶段）
+### 0.3 `feature/session-history` — 多日学习记录（已完成）
 
 - 按日期保存每日 Session
 - 历史学习日历
 - 昨日故事结尾和选择继承
 - 防止同一天重复生成记录
 
-### 0.4 `refactor/domain-data-layer` — 领域模型与数据层拆分
+### 0.4 `refactor/domain-data-layer` — 领域模型与数据层拆分（下一阶段）
 
 - 从单一 `App.tsx` 拆分页面、组件、类型和服务
 - 建立 User、Word、DailySession、StoryNode、WeeklyReport 模型

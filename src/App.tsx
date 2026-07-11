@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ArrowLeft, ArrowRight, BarChart3, BookMarked, BookOpen, Check, CheckCircle2,
+  ArrowLeft, ArrowRight, BarChart3, BookMarked, BookOpen, CalendarDays, Check, CheckCircle2,
   ChevronRight, CircleHelp, Cloud, Download, Flame, Headphones, Home, Languages,
   Library, LockKeyhole, Menu, Mic, Moon, MoreHorizontal, Pause, Play, RotateCcw,
   Search, Settings, Sparkles, Star, Trophy, Volume2, WandSparkles, X
@@ -12,22 +12,54 @@ type Page = 'home'|'learn'|'quiz'|'story'|'library'|'report'|'settings'
 type Knowledge = 'know'|'fuzzy'|'new'
 type WordMix = '20+0'|'15+5'|'10+10'|'dynamic'
 type DailyMinutes = 15|20|30
+type DailySession = {
+  date: string; learned: Record<string, Knowledge>; learnedCount: number;
+  newCount: number; reviewCount: number; quizScore: number; storyChoice: string;
+  storyLength: StoryLength; dailyMinutes: DailyMinutes; completedAt: string;
+}
 type AppState = {
   onboarded: boolean; displayName: string; level: string; genre: string; accent: string;
   learned: Record<string, Knowledge>; currentWord: number; quizAnswers: Record<number, string>;
   quizDone: boolean; storyChoice: string; completed: boolean; streak: number;
   wordMix: WordMix; storyLength: StoryLength; dailyMinutes: DailyMinutes;
+  activeDate: string; sessions: Record<string, DailySession>;
 }
 
 const initialState: AppState = {
   onboarded:false, displayName:'Mia', level:'A2', genre:'奇幻冒险', accent:'美式', learned:{}, currentWord:0,
   quizAnswers:{}, quizDone:false, storyChoice:'', completed:false, streak:7,
   wordMix:'15+5', storyLength:'medium', dailyMinutes:20,
+  activeDate:'', sessions:{},
+}
+
+const getDateKey = (date = new Date()) => {
+  const year=date.getFullYear(), month=String(date.getMonth()+1).padStart(2,'0'), day=String(date.getDate()).padStart(2,'0')
+  return `${year}-${month}-${day}`
+}
+const addDays = (dateKey:string, amount:number) => {
+  const [year,month,day]=dateKey.split('-').map(Number), date=new Date(year,month-1,day)
+  date.setDate(date.getDate()+amount)
+  return getDateKey(date)
 }
 
 const loadState = (): AppState => {
-  try { return { ...initialState, ...JSON.parse(localStorage.getItem('wordquest-state') || '{}') } }
-  catch { return initialState }
+  const today=getDateKey()
+  try {
+    const saved=JSON.parse(localStorage.getItem('wordquest-state') || '{}')
+    const merged={ ...initialState, ...saved, activeDate:saved.activeDate || today, sessions:saved.sessions || {} } as AppState
+    if(merged.completed && merged.storyChoice && !merged.sessions[merged.activeDate]) {
+      const reviewCount=getReviewCount(merged)
+      const correct=Object.entries(merged.quizAnswers).filter(([index,answer])=>quizQuestions[+index]?.answer===answer).length
+      merged.sessions={...merged.sessions,[merged.activeDate]:{
+        date:merged.activeDate, learned:{...merged.learned}, learnedCount:Object.keys(merged.learned).length,
+        newCount:20-reviewCount, reviewCount, quizScore:correct*20, storyChoice:merged.storyChoice,
+        storyLength:merged.storyLength, dailyMinutes:merged.dailyMinutes, completedAt:new Date().toISOString(),
+      }}
+    }
+    if(merged.activeDate!==today) return {...merged,activeDate:today,learned:{},currentWord:0,quizAnswers:{},quizDone:false,storyChoice:'',completed:false}
+    return merged
+  }
+  catch { return {...initialState,activeDate:today} }
 }
 
 function getReviewCount(state: AppState) {
@@ -57,6 +89,25 @@ const storyLengthLabels: Record<StoryLength, { range: string; minutes: number; n
   long: { range: '300—500 词', minutes: 4, name: '长篇' },
 }
 
+const choiceContinuations: Record<string, { title:string; summary:string }> = {
+  underground: { title:'地下通道仍在延伸', summary:'你昨天选择进入地下通道。蓝色信号沿着石壁闪烁，把米娅带向观测站更深处。' },
+  machine: { title:'银色机器再次启动', summary:'你昨天选择返回研究机器。机器保存的第二段录音，成为今天冒险的新线索。' },
+  shadow: { title:'森林黑影留下足迹', summary:'你昨天选择追踪森林黑影。清晨的新鲜足迹，一直延伸到旧观测站门前。' },
+}
+
+function getPreviousSession(state:AppState) {
+  return state.sessions[addDays(state.activeDate,-1)]
+}
+function getWeekDateKeys(dateKey:string) {
+  const [year,month,day]=dateKey.split('-').map(Number), current=new Date(year,month-1,day)
+  const mondayOffset=(current.getDay()+6)%7
+  return Array.from({length:7},(_,index)=>addDays(dateKey,index-mondayOffset))
+}
+function formatSessionDate(dateKey:string) {
+  const [year,month,day]=dateKey.split('-').map(Number)
+  return new Intl.DateTimeFormat('zh-CN',{month:'long',day:'numeric',weekday:'short'}).format(new Date(year,month-1,day))
+}
+
 function App() {
   const [state, setState] = useState<AppState>(loadState)
   const [page, setPage] = useState<Page>('home')
@@ -71,6 +122,19 @@ function App() {
   const patch = (next: Partial<AppState>) => setState(s => ({...s, ...next}))
   const notify = (text:string) => { setToast(text); window.setTimeout(()=>setToast(''), 2400) }
   const learnedCount = Object.keys(state.learned).length
+  const previousSession=getPreviousSession(state)
+  const completeToday=(storyChoice:string)=>setState(current=>{
+    const reviewCount=getReviewCount(current)
+    const correct=Object.entries(current.quizAnswers).filter(([index,answer])=>quizQuestions[+index]?.answer===answer).length
+    const existing=current.sessions[current.activeDate]
+    const session:DailySession={
+      date:current.activeDate, learned:{...current.learned}, learnedCount:Object.keys(current.learned).length,
+      newCount:20-reviewCount, reviewCount, quizScore:correct*20, storyChoice,
+      storyLength:current.storyLength, dailyMinutes:current.dailyMinutes,
+      completedAt:existing?.completedAt || new Date().toISOString(),
+    }
+    return {...current,storyChoice,completed:true,sessions:{...current.sessions,[current.activeDate]:session}}
+  })
 
   if (!state.onboarded) return <Onboarding step={onboarding} setStep={setOnboarding} state={state} patch={patch} />
 
@@ -79,10 +143,10 @@ function App() {
     <main className="main">
       <MobileHeader setPage={setPage} menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
       {menuOpen && <MobileMenu page={page} setPage={(p)=>{setPage(p);setMenuOpen(false)}} />}
-      {page==='home' && <Dashboard state={state} learnedCount={learnedCount} setPage={setPage} notify={notify} />}
+      {page==='home' && <Dashboard state={state} learnedCount={learnedCount} previousSession={previousSession} setPage={setPage} notify={notify} />}
       {page==='learn' && <Learn state={state} patch={patch} setPage={setPage} notify={notify} />}
       {page==='quiz' && <Quiz state={state} patch={patch} setPage={setPage} />}
-      {page==='story' && <Story state={state} patch={patch} setPage={setPage} notify={notify} />}
+      {page==='story' && <Story state={state} completeToday={completeToday} previousSession={previousSession} setPage={setPage} notify={notify} />}
       {page==='library' && <Vocabulary state={state} />}
       {page==='report' && <Report state={state} notify={notify} />}
       {page==='settings' && <SettingsPage state={state} patch={patch} notify={notify} />}
@@ -135,9 +199,10 @@ function Onboarding({step,setStep,state,patch}:{step:number,setStep:(n:number)=>
   </div>
 }
 
-function Dashboard({state,learnedCount,setPage,notify}:{state:AppState,learnedCount:number,setPage:(p:Page)=>void,notify:(s:string)=>void}) {
+function Dashboard({state,learnedCount,previousSession,setPage,notify}:{state:AppState,learnedCount:number,previousSession?:DailySession,setPage:(p:Page)=>void,notify:(s:string)=>void}) {
   const pct = Math.round(learnedCount/20*100)
   const sessionWords = getSessionWords(state), reviewCount = getReviewCount(state), newCount = 20-reviewCount
+  const weekKeys=getWeekDateKeys(state.activeDate), continuity=previousSession?choiceContinuations[previousSession.storyChoice]:undefined
   const date = new Intl.DateTimeFormat('zh-CN',{month:'long',day:'numeric',weekday:'long'}).format(new Date())
   return <div className="page dashboard-page">
     <header className="page-title"><div><p className="eyebrow">{date}</p><h1>早上好，{state.displayName || "学习者"} <span>👋</span></h1><p>今天的森林里，似乎有一道新的光。</p></div><button className="icon-btn" title="切换深色模式"><Moon size={20}/></button></header>
@@ -148,8 +213,8 @@ function Dashboard({state,learnedCount,setPage,notify}:{state:AppState,learnedCo
     <div className="content-grid">
       <section className="panel today-panel"><div className="panel-head"><div><p className="eyebrow">TODAY'S WORDS</p><h3>今日目标词</h3></div><button onClick={()=>setPage('learn')}>查看全部 <ChevronRight size={16}/></button></div><div className="word-preview">{sessionWords.slice(0,6).map((w,i)=><button key={w.word} onClick={()=>setPage('learn')}><span className={`word-index ${state.learned[w.word]?'done':''}`}>{state.learned[w.word]?<Check size={14}/>:i+1}</span><div><strong>{w.word}</strong><small>{w.phonetic}</small></div><span>{w.meaning}</span>{w.review&&<em>复习</em>}</button>)}</div><div className="word-foot"><div className="mini-avatars"><span>{newCount}</span><span>{reviewCount}</span></div><p><b>{newCount}</b> 个新词 · <b>{reviewCount}</b> 个复习词{state.wordMix==='dynamic'&&<small> · AI 动态</small>}</p></div></section>
       <aside className="right-column">
-        <section className="panel story-teaser"><div className="teaser-cover"><span>CHAPTER 1</span><div className="tower">✦</div></div><div><p className="eyebrow">你的长期故事</p><h3>雾林中的观测站</h3><p>“蓝色信号在地图上闪烁，仿佛在指引一条从未有人走过的路……”</p><button onClick={()=>setPage('story')}>{state.quizDone?'继续故事':'完成测试后解锁'} {state.quizDone?<ArrowRight size={15}/>:<LockKeyhole size={14}/>}</button></div></section>
-        <section className="panel week-panel"><div className="panel-head"><div><p className="eyebrow">THIS WEEK</p><h3>本周节奏</h3></div><button onClick={()=>setPage('report')}>周报</button></div><div className="week-days">{['一','二','三','四','五','六','日'].map((d,i)=><div key={d}><span>{d}</span><i className={i<4?'done':i===4?'today':''}>{i<4?<Check size={13}/>:i===4?'今':''}</i></div>)}</div><div className="week-stat"><Flame size={21}/><span><b>{state.streak} 天连续学习</b><small>再坚持 2 天，刷新本月记录</small></span></div></section>
+        <section className="panel story-teaser"><div className="teaser-cover"><span>CHAPTER 1</span><div className="tower">✦</div></div><div><p className="eyebrow">你的长期故事</p><h3>雾林中的观测站</h3><p>“蓝色信号在地图上闪烁，仿佛在指引一条从未有人走过的路……”</p>{continuity&&<div className="continuity-note"><RotateCcw/><span><b>承接昨日：{continuity.title}</b><small>{continuity.summary}</small></span></div>}<button onClick={()=>setPage('story')}>{state.quizDone?'继续故事':'完成测试后解锁'} {state.quizDone?<ArrowRight size={15}/>:<LockKeyhole size={14}/>}</button></div></section>
+        <section className="panel week-panel"><div className="panel-head"><div><p className="eyebrow">THIS WEEK</p><h3>本周节奏</h3></div><button onClick={()=>setPage('report')}>周报</button></div><div className="week-days">{weekKeys.map((key,i)=>{const done=Boolean(state.sessions[key]);return <div key={key}><span>{['一','二','三','四','五','六','日'][i]}</span><i className={`${done?'done ':''}${key===state.activeDate?'today':''}`}>{done?<Check size={13}/>:key===state.activeDate?'今':''}</i></div>})}</div><div className="week-stat"><Flame size={21}/><span><b>{state.streak} 天连续学习</b><small>再坚持 2 天，刷新本月记录</small></span></div></section>
       </aside>
     </div>
     <button className="sync-bar" onClick={()=>notify('Markdown 已准备好，可在周报页导出')}><Cloud size={18}/><span><b>Obsidian</b> · 本地导出模式</span><i>设置同步 <ChevronRight size={15}/></i></button>
@@ -215,13 +280,14 @@ function HighlightedStory({paragraph}:{paragraph:string}) {
   const words=todayWords.map(w=>w.word); const regex=new RegExp(`\\b((?:${words.join('|')})(?:s|ed)?)\\b`,'gi'); const parts=paragraph.split(regex)
   return <p>{parts.map((p,i)=> words.some(w=>p.toLowerCase().startsWith(w))?<mark key={i}>{p}</mark>:<span key={i}>{p}</span>)}</p>
 }
-function Story({state,patch,setPage,notify}:{state:AppState,patch:(p:Partial<AppState>)=>void,setPage:(p:Page)=>void,notify:(s:string)=>void}) {
+function Story({state,completeToday,previousSession,setPage,notify}:{state:AppState,completeToday:(choice:string)=>void,previousSession?:DailySession,setPage:(p:Page)=>void,notify:(s:string)=>void}) {
   const [translation,setTranslation]=useState(false), [playing,setPlaying]=useState(false)
   const activeStory=storyVariants[state.storyLength], storyInfo=storyLengthLabels[state.storyLength]
+  const continuity=previousSession?choiceContinuations[previousSession.storyChoice]:undefined
   const storyWordCount=activeStory.reduce((total,paragraph)=>total+paragraph.en.trim().split(/\s+/).length,0)
   const playAll=()=>{ if(playing){speechSynthesis.cancel();setPlaying(false)}else{speak(activeStory.map(p=>p.en).join(' '),.72,state.accent);setPlaying(true); setTimeout(()=>setPlaying(false),storyInfo.minutes*18000)} }
   if(!state.quizDone) return <div className="page centered-page"><div className="locked-card"><LockKeyhole/><p className="eyebrow">今日故事尚未解锁</p><h1>先完成单词小测</h1><p>测试会帮助你巩固今天的目标词，再进入故事语境。</p><button className="primary" onClick={()=>setPage('quiz')}>开始测试 <ArrowRight/></button></div></div>
-  return <div className="page story-page"><header className="story-header"><button className="back-link" onClick={()=>setPage('home')}><ArrowLeft/>今日首页</button><div><span>雾林中的观测站</span><small>第 4 天 · 第一章</small></div><div><button className={translation?'active':''} onClick={()=>setTranslation(!translation)}><Languages/>中英对照</button><button onClick={playAll}>{playing?<Pause/>:<Headphones/>}{playing?'暂停':'朗读全文'}</button></div></header><article className="story-paper"><div className="chapter-label"><span>CHAPTER 01</span><i>DAY FOUR</i></div><h1>The Signal in the Forest</h1><p className="story-subtitle">森林里的信号</p><div className="story-meta"><span><Sparkles/>今日 20 词已全部融入</span><span>{storyInfo.name} · {storyWordCount} 词 · 约 {storyInfo.minutes} 分钟阅读</span></div><div className="story-text">{activeStory.map(p=><div className="story-paragraph" key={p.en}><button onClick={()=>speak(p.en,.72,state.accent)}><Volume2/></button><HighlightedStory paragraph={p.en}/>{translation&&<small>{p.zh}</small>}</div>)}</div><div className="coverage"><div><CheckCircle2/><span><b>词汇覆盖验证通过</b><small>20 / 20 个今日目标词已出现 · 核心词汇覆盖率 96%</small></span></div><button onClick={()=>notify('已显示全部高亮词')}>查看词汇 <ChevronRight/></button></div><section className="choice-section"><div className="choice-title"><p className="eyebrow">YOUR CHOICE</p><h2>接下来，米娅应该怎么做？</h2><p>你的选择将成为明天故事的起点。</p></div><div className="story-choices">{storyChoices.map(c=><button key={c.id} className={state.storyChoice===c.id?'selected':''} onClick={()=>patch({storyChoice:c.id,completed:true})}><span>{c.icon}</span><div><strong>{c.title}</strong><small>{c.en}</small><p>{c.hint}</p></div>{state.storyChoice===c.id?<CheckCircle2/>:<ArrowRight/>}</button>)}</div>{state.storyChoice&&<div className="choice-confirm"><CheckCircle2/><span><b>选择已保存</b><small>明天的故事将从这里继续。今天的学习记录已完成。</small></span><button onClick={()=>setPage('report')}>查看学习总结</button></div>}</section></article></div>
+  return <div className="page story-page"><header className="story-header"><button className="back-link" onClick={()=>setPage('home')}><ArrowLeft/>今日首页</button><div><span>雾林中的观测站</span><small>第 4 天 · 第一章</small></div><div><button className={translation?'active':''} onClick={()=>setTranslation(!translation)}><Languages/>中英对照</button><button onClick={playAll}>{playing?<Pause/>:<Headphones/>}{playing?'暂停':'朗读全文'}</button></div></header><article className="story-paper"><div className="chapter-label"><span>CHAPTER 01</span><i>DAY FOUR</i></div><h1>The Signal in the Forest</h1><p className="story-subtitle">森林里的信号</p>{continuity&&<div className="story-continuity"><RotateCcw/><div><span>昨日选择已继承</span><b>{continuity.title}</b><p>{continuity.summary}</p></div></div>}<div className="story-meta"><span><Sparkles/>今日 20 词已全部融入</span><span>{storyInfo.name} · {storyWordCount} 词 · 约 {storyInfo.minutes} 分钟阅读</span></div><div className="story-text">{activeStory.map(p=><div className="story-paragraph" key={p.en}><button onClick={()=>speak(p.en,.72,state.accent)}><Volume2/></button><HighlightedStory paragraph={p.en}/>{translation&&<small>{p.zh}</small>}</div>)}</div><div className="coverage"><div><CheckCircle2/><span><b>词汇覆盖验证通过</b><small>20 / 20 个今日目标词已出现 · 核心词汇覆盖率 96%</small></span></div><button onClick={()=>notify('已显示全部高亮词')}>查看词汇 <ChevronRight/></button></div><section className="choice-section"><div className="choice-title"><p className="eyebrow">YOUR CHOICE</p><h2>接下来，米娅应该怎么做？</h2><p>你的选择将成为明天故事的起点。</p></div><div className="story-choices">{storyChoices.map(c=><button key={c.id} className={state.storyChoice===c.id?'selected':''} onClick={()=>{completeToday(c.id);notify(state.sessions[state.activeDate]?'今日记录已更新，没有重复新增':'今日学习记录已保存')}}><span>{c.icon}</span><div><strong>{c.title}</strong><small>{c.en}</small><p>{c.hint}</p></div>{state.storyChoice===c.id?<CheckCircle2/>:<ArrowRight/>}</button>)}</div>{state.storyChoice&&<div className="choice-confirm"><CheckCircle2/><span><b>选择已保存</b><small>明天的故事将从这里继续。今天的学习记录已完成。</small></span><button onClick={()=>setPage('report')}>查看学习总结</button></div>}</section></article></div>
 }
 function Vocabulary({state}:{state:AppState}) {
   const [search,setSearch]=useState(''); const [filter,setFilter]=useState('全部')
@@ -236,9 +302,64 @@ function makeMarkdown(state:AppState) {
   return `---\ndate: ${date}\nlevel: ${state.level}\nstory: 雾林中的观测站\ntags: [英语学习, WordQuest, 每日故事]\n---\n\n# ${date} 英语学习记录\n\n## 今日学习概览\n- 目标词：20（${20-reviewCount} 新词 + ${reviewCount} 复习）\n- 计划时长：${state.dailyMinutes} 分钟\n- 故事长度：${storyLengthLabels[state.storyLength].name}（${storyLengthLabels[state.storyLength].range}）\n- 已学习：${Object.keys(state.learned).length}\n- 小测状态：${state.quizDone?'已完成':'未完成'}\n- 连续学习：${state.streak} 天\n- 学习者：${state.displayName || '学习者'}\n\n## 今日 20 词\n${sessionWords.map(w=>`- **${w.word}** ${w.phonetic} — ${w.meaning}${w.review?'（复习）':''}\n  - ${w.example}`).join('\n')}\n\n## 今日故事：The Signal in the Forest\n\n${activeStory.map(p=>p.en).join('\n\n')}\n\n> 今日选择：${choice}\n\n## 明日复习建议\n重点复习 courage、whisper、ancient，并再次朗读故事第二段。\n`
 }
 function downloadText(name:string,text:string) { const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/markdown;charset=utf-8'}));a.download=name;a.click();URL.revokeObjectURL(a.href) }
+function HistoryCalendar({state}:{state:AppState}) {
+  const sessionDates=Object.keys(state.sessions).sort()
+  const [selectedDate,setSelectedDate]=useState(sessionDates.at(-1) || state.activeDate)
+  const [visibleMonth,setVisibleMonth]=useState(()=>state.activeDate.slice(0,7))
+  const [year,month]=visibleMonth.split('-').map(Number)
+  const firstDay=new Date(year,month-1,1), daysInMonth=new Date(year,month,0).getDate()
+  const offset=(firstDay.getDay()+6)%7
+  const cells=[...Array(offset).fill(null),...Array.from({length:daysInMonth},(_,index)=>String(index+1).padStart(2,'0'))]
+  const selectedSession=state.sessions[selectedDate]
+  const moveMonth=(amount:number)=>{
+    const next=new Date(year,month-1+amount,1)
+    setVisibleMonth(next.getFullYear()+'-'+String(next.getMonth()+1).padStart(2,'0'))
+  }
+  return <section className="panel history-calendar-panel">
+    <div className="history-head">
+      <div><p className="eyebrow">LEARNING HISTORY</p><h3><CalendarDays/>学习日历</h3><span>共保存 {sessionDates.length} 个学习日，同一天完成多次只更新一条记录。</span></div>
+      <div className="calendar-nav"><button aria-label="上个月" onClick={()=>moveMonth(-1)}><ArrowLeft/></button><b>{year} 年 {month} 月</b><button aria-label="下个月" onClick={()=>moveMonth(1)}><ArrowRight/></button></div>
+    </div>
+    <div className="calendar-weekdays">{['一','二','三','四','五','六','日'].map(day=><span key={day}>{day}</span>)}</div>
+    <div className="calendar-grid">
+      {cells.map((day,index)=>{
+        if(!day) return <span className="calendar-blank" key={'blank-'+index}/>
+        const dateKey=visibleMonth+'-'+day, session=state.sessions[dateKey]
+        const className='calendar-day'+(session?' has-session':'')+(dateKey===state.activeDate?' today':'')+(dateKey===selectedDate?' selected':'')
+        return <button key={dateKey} className={className} onClick={()=>session&&setSelectedDate(dateKey)} disabled={!session} aria-label={formatSessionDate(dateKey)+(session?'，已完成':'，无记录')}>
+          <span>{Number(day)}</span>{session&&<i><Check/></i>}
+        </button>
+      })}
+    </div>
+    {selectedSession?<div className="session-detail">
+      <div><p className="eyebrow">SESSION DETAIL</p><h4>{formatSessionDate(selectedDate)}</h4><span>{choiceContinuations[selectedSession.storyChoice]?.title || storyChoices.find(choice=>choice.id===selectedSession.storyChoice)?.title || '故事选择已保存'}</span></div>
+      <div className="session-detail-grid">
+        <span><b>{selectedSession.learnedCount}</b><small>学习词数</small></span>
+        <span><b>{selectedSession.newCount} + {selectedSession.reviewCount}</b><small>新词 / 复习</small></span>
+        <span><b>{selectedSession.quizScore}</b><small>小测得分</small></span>
+        <span><b>{storyLengthLabels[selectedSession.storyLength].name}</b><small>{selectedSession.dailyMinutes} 分钟计划</small></span>
+      </div>
+    </div>:<div className="session-empty"><CalendarDays/><span><b>还没有历史记录</b><small>完成今日故事选择后，学习记录会出现在这里。</small></span></div>}
+  </section>
+}
+
 function Report({state,notify}:{state:AppState,notify:(s:string)=>void}) {
-  const exportMd=()=>{downloadText(`${new Date().toISOString().slice(0,10)}-WordQuest.md`,makeMarkdown(state));notify('Markdown 已导出，可放入 Obsidian Vault')}
-  return <div className="page"><header className="page-title report-title"><div><p className="eyebrow">WEEKLY REVIEW</p><h1>本周学习周报</h1><p>7 月 7 日 — 7 月 13 日 · 第 28 周</p></div><button className="primary small" onClick={exportMd}><Download/>导出到 Obsidian</button></header><section className="report-hero"><div><p>本周你已经走了很远</p><h2>学会 <b>76</b> 个词，读完 <b>4</b> 段故事。</h2><span>比上周多学习 18 个词，保持这样的节奏！</span></div><div className="report-medal"><Trophy/><strong>7</strong><span>连续天数</span></div></section><div className="report-grid"><section className="panel chart-panel"><div className="panel-head"><div><p className="eyebrow">LEARNING ACTIVITY</p><h3>每日学习词数</h3></div><span className="up">↑ 24% 较上周</span></div><div className="bar-chart">{[12,20,18,20,6,0,0].map((v,i)=><div key={i}><span className={i===4?'today':''} style={{height:`${Math.max(4,v*6)}px`}}><b>{v||''}</b></span><small>{['一','二','三','四','今','六','日'][i]}</small></div>)}</div></section><section className="panel mastery-panel"><div className="panel-head"><div><p className="eyebrow">MASTERY</p><h3>掌握度分布</h3></div></div><div className="donut"><div><strong>68%</strong><span>平均掌握</span></div></div><ul><li><i className="c1"/>已掌握 <b>42</b></li><li><i className="c2"/>初步掌握 <b>27</b></li><li><i className="c3"/>需要复习 <b>7</b></li></ul></section><section className="panel chapter-panel"><div className="chapter-cover"><span>WEEK 01</span><div>✦</div></div><div><p className="eyebrow">本周故事章节</p><h3>第一章 · 蓝色信号</h3><p>米娅收到祖父的古老地图，穿过雾林，并在废弃观测站发现一台仍在运转的机器……</p><div className="chapter-tags"><span>4 个故事节点</span><span>76 个学习词</span></div><button onClick={()=>notify('周故事已根据每日节点整理完成')}>阅读完整章节 <ArrowRight/></button></div></section><section className="panel focus-panel"><div className="panel-head"><div><p className="eyebrow">NEXT FOCUS</p><h3>下周建议</h3></div></div><div className="focus-item"><span><Volume2/></span><div><b>加强发音</b><p>courage 和 entrance 的重音还可以更清晰。</p></div></div><div className="focus-item"><span><RotateCcw/></span><div><b>及时复习 7 个词</b><p>它们正在进入遗忘区间，建议明天优先安排。</p></div></div><div className="focus-item"><span><BookOpen/></span><div><b>试试 300 词故事</b><p>你的阅读正确率足以挑战更长的章节。</p></div></div></section></div></div>
+  const exportMd=()=>{downloadText(state.activeDate+'-WordQuest.md',makeMarkdown(state));notify('Markdown 已导出，可放入 Obsidian Vault')}
+  const weekKeys=getWeekDateKeys(state.activeDate), weekSessions=weekKeys.map(key=>state.sessions[key])
+  const weekValues=weekSessions.map(session=>session?.learnedCount || 0)
+  const weekWords=weekValues.reduce((total,value)=>total+value,0), weekStories=weekSessions.filter(Boolean).length
+  const range=formatSessionDate(weekKeys[0]).replace(/星期.*/,'')+' — '+formatSessionDate(weekKeys[6]).replace(/星期.*/,'')
+  return <div className="page">
+    <header className="page-title report-title"><div><p className="eyebrow">WEEKLY REVIEW</p><h1>本周学习周报</h1><p>{range}</p></div><button className="primary small" onClick={exportMd}><Download/>导出到 Obsidian</button></header>
+    <section className="report-hero"><div><p>本周你已经走了很远</p><h2>学会 <b>{weekWords}</b> 个词，读完 <b>{weekStories}</b> 段故事。</h2><span>{weekStories?'本周已有 '+weekStories+' 天留下完整记录，继续保持这样的节奏！':'完成今日故事选择后，这里会生成第一条学习记录。'}</span></div><div className="report-medal"><Trophy/><strong>{state.streak}</strong><span>连续天数</span></div></section>
+    <div className="report-grid">
+      <HistoryCalendar state={state}/>
+      <section className="panel chart-panel"><div className="panel-head"><div><p className="eyebrow">LEARNING ACTIVITY</p><h3>每日学习词数</h3></div><span className="up">本周 {weekWords} 词</span></div><div className="bar-chart">{weekValues.map((value,index)=><div key={weekKeys[index]}><span className={weekKeys[index]===state.activeDate?'today':''} style={{height:Math.max(4,value*6)+'px'}}><b>{value||''}</b></span><small>{weekKeys[index]===state.activeDate?'今':['一','二','三','四','五','六','日'][index]}</small></div>)}</div></section>
+      <section className="panel mastery-panel"><div className="panel-head"><div><p className="eyebrow">MASTERY</p><h3>掌握度分布</h3></div></div><div className="donut"><div><strong>68%</strong><span>平均掌握</span></div></div><ul><li><i className="c1"/>已掌握 <b>42</b></li><li><i className="c2"/>初步掌握 <b>27</b></li><li><i className="c3"/>需要复习 <b>7</b></li></ul></section>
+      <section className="panel chapter-panel"><div className="chapter-cover"><span>WEEK 01</span><div>✦</div></div><div><p className="eyebrow">本周故事章节</p><h3>第一章 · 蓝色信号</h3><p>米娅收到祖父的古老地图，穿过雾林，并在废弃观测站发现一台仍在运转的机器……</p><div className="chapter-tags"><span>{weekStories} 个故事节点</span><span>{weekWords} 个学习词</span></div><button onClick={()=>notify('周故事已根据每日节点整理完成')}>阅读完整章节 <ArrowRight/></button></div></section>
+      <section className="panel focus-panel"><div className="panel-head"><div><p className="eyebrow">NEXT FOCUS</p><h3>下周建议</h3></div></div><div className="focus-item"><span><Volume2/></span><div><b>加强发音</b><p>courage 和 entrance 的重音还可以更清晰。</p></div></div><div className="focus-item"><span><RotateCcw/></span><div><b>及时复习 {getReviewCount(state)} 个词</b><p>它们正在进入遗忘区间，建议明天优先安排。</p></div></div><div className="focus-item"><span><BookOpen/></span><div><b>试试 300 词故事</b><p>你的阅读正确率足以挑战更长的章节。</p></div></div></section>
+    </div>
+  </div>
 }
 
 function SettingsPage({state,patch,notify}:{state:AppState,patch:(p:Partial<AppState>)=>void,notify:(s:string)=>void}) {
