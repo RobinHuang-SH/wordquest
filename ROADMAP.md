@@ -46,7 +46,7 @@ main（稳定可运行）
 - 昨日故事结尾和选择继承
 - 防止同一天重复生成记录
 
-### 0.4 `refactor/domain-data-layer` — 领域模型与数据层拆分（下一阶段）
+### 0.4 `refactor/domain-data-layer` — 领域模型与数据层拆分（已完成）
 
 - 从单一 `App.tsx` 拆分页面、组件、类型和服务
 - 建立 User、Word、DailySession、StoryNode、WeeklyReport 模型
@@ -55,7 +55,7 @@ main（稳定可运行）
 
 ## 阶段 1：质量与可维护性
 
-### 1.1 `chore/test-foundation`
+### 1.1 `chore/test-foundation`（下一阶段）
 
 - Vitest + React Testing Library
 - 单词选择、测试计分、故事覆盖、Markdown 导出单元测试
