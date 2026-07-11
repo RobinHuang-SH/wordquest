@@ -22,7 +22,7 @@ main（稳定可运行）
 
 ## 阶段 0：产品体验补全
 
-### 0.1 `feature/edit-profile-name` — 可编辑用户名字（当前分支）
+### 0.1 `feature/edit-profile-name` — 可编辑用户名字（已完成）
 
 - 设置页修改名字
 - 首页问候实时更新
@@ -32,14 +32,14 @@ main（稳定可运行）
 
 验收：刷新页面后名字保留，所有展示位置一致。
 
-### 0.2 `feature/learning-preferences` — 学习偏好真正生效
+### 0.2 `feature/learning-preferences` — 学习偏好真正生效（已完成）
 
 - 每日新词/复习词比例进入状态模型
 - 故事长度设置进入状态模型
 - 学习时间与每日目标持久化
 - 设置项不再使用仅展示的默认值
 
-### 0.3 `feature/session-history` — 多日学习记录
+### 0.3 `feature/session-history` — 多日学习记录（下一阶段）
 
 - 按日期保存每日 Session
 - 历史学习日历

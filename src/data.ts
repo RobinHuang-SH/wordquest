@@ -27,12 +27,69 @@ export const todayWords: Word[] = [
   { word:'escape', phonetic:'/ɪˈskeɪp/', pos:'v.', meaning:'逃脱', definition:'to get free from a dangerous place', example:'They escaped through the window.', exampleZh:'他们从窗户逃了出去。', collocations:['escape from','narrow escape'], level:'A2' },
 ]
 
-export const storyParagraphs = [
-  `At sunrise, Mia began a new journey along the forest path. In her pocket was an ancient map, a final message from her grandfather. It showed a hidden entrance beneath the old observatory.`,
-  `As she reached the hill, a strange blue signal began to glow on the map. “Be careful,” her friend Leo whispered. A tall shadow moved between the trees, but Mia chose to trust him and continue.`,
-  `Inside the observatory, they discovered a room full of silver machines. One machine played her grandfather's promise: “Protect this place. The city may need its light.” Suddenly, the door closed behind them.`,
-  `Mia had to decide quickly. With courage, she touched the brightest stone. The wall opened just enough for them to escape—but beyond it waited a second path, leading deeper underground.`
-]
+export type StoryLength = 'short' | 'medium' | 'long'
+
+export type StoryParagraph = {
+  en: string
+  zh: string
+}
+
+export const storyVariants: Record<StoryLength, StoryParagraph[]> = {
+  short: [
+    {
+      en: `At sunrise, Mia began a journey on the forest path with an ancient map and a final message from her grandfather. A strange blue signal began to glow beside a hidden entrance. “Be careful,” Leo whispered as a shadow crossed the trees. Mia chose to trust him, found her courage, and stepped inside without looking back.`,
+      zh: `日出时，米娅带着一张古老地图和祖父最后的信息，踏上了森林小路。一道奇怪的蓝色信号在隐藏入口旁开始发光。“小心，”利奥在影子掠过树林时低声说道。米娅选择信任他，鼓起勇气走了进去。`,
+    },
+    {
+      en: `They discovered a silver machine playing her grandfather's promise: “Protect this place.” Suddenly, the door closed. Mia had to decide fast. She touched the bright stone, opened another entrance, and helped them escape. Beyond it, a second path waited, carrying the signal deeper underground.`,
+      zh: `他们发现一台银色机器正在播放祖父的承诺：“保护这里。”突然，门关上了。米娅必须迅速决定。她触碰亮起的石头，打开另一个入口，帮助两人逃脱。外面还有第二条路，带着信号通往更深的地下。`,
+    },
+  ],
+  medium: [
+    {
+      en: `At sunrise, Mia began a new journey along the forest path. In her pocket was an ancient map, a final message from her grandfather. It showed a hidden entrance beneath the old observatory, but the ink around it seemed newer than the rest of the map.`,
+      zh: `日出时，米娅沿着森林小路开始了新的旅程。她口袋里装着祖父留下的古老地图和最后的信息。地图标出了旧观测站下方一个隐藏的入口，但入口周围的墨迹似乎比地图其他部分更新。`,
+    },
+    {
+      en: `As she reached the hill, a strange blue signal began to glow on the map. “Be careful,” her friend Leo whispered. A tall shadow moved between the trees, but Mia chose to trust him and continue. They followed fresh footprints until the observatory rose through the mist.`,
+      zh: `当她到达山丘时，地图上开始闪烁奇怪的蓝色信号。“小心，”朋友利奥低声说。一个高大的影子在树林间移动，但米娅选择信任他并继续前进。他们沿着新鲜脚印前行，直到观测站从雾中显现。`,
+    },
+    {
+      en: `Inside, they discovered a room full of silver machines and glass tubes. One machine played her grandfather's promise: “Protect this place. The city may need its light.” Suddenly, the door closed behind them, and a red lamp began counting down from sixty.`,
+      zh: `在观测站内，他们发现了一个摆满银色机器和玻璃管的房间。一台机器播放着祖父的承诺：“保护这里，这座城市或许会需要它的光。”突然，门在他们身后关上，一盏红灯开始从六十倒数。`,
+    },
+    {
+      en: `Mia had to decide quickly. With courage, she touched the brightest stone. The wall opened just enough for them to escape—but beyond it waited a second path, leading deeper underground. Before following it, she copied the signal into her notebook so they could find their way back.`,
+      zh: `米娅必须迅速做出决定。她鼓起勇气触碰最亮的石头。墙壁打开了一条缝，让他们得以逃脱——但外面还有第二条路，通往更深的地下。继续前，她把信号抄进笔记本，以便找到回来的路。`,
+    },
+  ],
+  long: [
+    {
+      en: `At sunrise, Mia began a new journey along the forest path. In her pocket was an ancient map and a final message from her grandfather. It showed a hidden entrance beneath the old observatory, but the ink around it seemed newer than the rest. Her grandfather had vanished three years ago, and this was the first clue that felt meant for her.`,
+      zh: `日出时，米娅沿着森林小路开始了新的旅程。她口袋里装着一张古老地图和祖父最后的信息。地图标出了旧观测站下方一个隐藏的入口，但入口周围的墨迹似乎更新。祖父三年前失踪了，这是第一条像是专门留给她的线索。`,
+    },
+    {
+      en: `As she reached the hill, a strange blue signal began to glow on the map. “Be careful,” her friend Leo whispered. A tall shadow moved between the trees, but Mia chose to trust him and continue. They followed fresh footprints through wet ferns until the observatory's broken tower rose above the mist.`,
+      zh: `当她到达山丘时，地图上开始闪烁奇怪的蓝色信号。“小心，”朋友利奥低声说。一个高大的影子在树林间移动，但米娅选择信任他并继续前进。他们沿着穿过湿蕨丛的新鲜脚印前行，直到观测站破损的塔楼升出雾气。`,
+    },
+    {
+      en: `Inside, they discovered a room full of silver machines, glass tubes, and star charts. One machine played her grandfather's promise: “Protect this place. The city may need its light.” Suddenly, the door closed behind them, a red lamp began counting down, and metal shutters covered every window.`,
+      zh: `在观测站内，他们发现了一个摆满银色机器、玻璃管和星图的房间。一台机器播放着祖父的承诺：“保护这里，这座城市或许会需要它的光。”突然，门在他们身后关上，红灯开始倒数，金属百叶封住了每扇窗。`,
+    },
+    {
+      en: `Mia had to decide quickly. With courage, she touched the brightest stone. The wall opened just enough for them to escape—but beyond it waited a second path, leading deeper underground. Before following it, she copied the signal into her notebook while Leo held the heavy stone door open.`,
+      zh: `米娅必须迅速做出决定。她鼓起勇气触碰最亮的石头。墙壁打开了一条缝，让他们得以逃脱——但外面还有第二条路，通往更深的地下。继续前，她把信号抄进笔记本，利奥则撑着沉重的石门。`,
+    },
+    {
+      en: `The tunnel carried warm air and the quiet rhythm of hidden engines. Symbols on the walls matched the ancient map, forming a record of lights seen above the city for hundreds of years. Mia realized the observatory had never watched the stars; it had watched something moving below the forest.`,
+      zh: `隧道里流动着暖风和隐藏引擎的轻微节奏。墙上的符号与古老地图吻合，记录着数百年来城市上空出现的光。米娅意识到，观测站从未真正观察星星；它一直在监视森林下方移动的东西。`,
+    },
+    {
+      en: `At the next chamber, the blue light divided into three directions. One route led toward the city's power station, another returned beneath the silver machine, and the last followed the unknown shadow. Mia understood why her grandfather had left a choice instead of an order: only she could judge which danger mattered first.`,
+      zh: `在下一间石室里，蓝光分成三个方向。一条通往城市发电站，一条返回银色机器下方，最后一条追随着未知的影子。米娅明白祖父为何留下选择而不是命令：只有她能判断哪种危险最需要优先处理。`,
+    },
+  ],
+}
 
 export const storyChoices = [
   { id:'underground', icon:'🗝️', title:'进入地下通道', en:'Follow the underground path', hint:'寻找信号的真正来源' },

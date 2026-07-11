@@ -56,8 +56,8 @@ pnpm preview
 
 ## 开发路线与 Git 分支
 
-项目的逐步完善计划见 `ROADMAP.md`。采用“一项优化一个分支”，当前首个优化分支为：
+项目的逐步完善计划见 `ROADMAP.md`。采用“一项优化一个分支”。已完成可编辑名字与学习偏好联动，下一阶段分支为：
 
 ```text
-feature/edit-profile-name
+feature/session-history
 ```
