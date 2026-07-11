@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft, ArrowRight, BarChart3, BookMarked, BookOpen, Check, CheckCircle2,
   ChevronRight, CircleHelp, Cloud, Download, Flame, Headphones, Home, Languages,
@@ -11,13 +11,13 @@ import './styles.css'
 type Page = 'home'|'learn'|'quiz'|'story'|'library'|'report'|'settings'
 type Knowledge = 'know'|'fuzzy'|'new'
 type AppState = {
-  onboarded: boolean; level: string; genre: string; accent: string;
+  onboarded: boolean; displayName: string; level: string; genre: string; accent: string;
   learned: Record<string, Knowledge>; currentWord: number; quizAnswers: Record<number, string>;
   quizDone: boolean; storyChoice: string; completed: boolean; streak: number;
 }
 
 const initialState: AppState = {
-  onboarded:false, level:'A2', genre:'奇幻冒险', accent:'美式', learned:{}, currentWord:0,
+  onboarded:false, displayName:'Mia', level:'A2', genre:'奇幻冒险', accent:'美式', learned:{}, currentWord:0,
   quizAnswers:{}, quizDone:false, storyChoice:'', completed:false, streak:7,
 }
 
@@ -76,7 +76,7 @@ function Sidebar({page,setPage,state}:{page:Page,setPage:(p:Page)=>void,state:Ap
     <div className="sidebar-bottom">
       <div className="streak-card"><Flame size={22}/><div><strong>{state.streak} 天</strong><span>连续学习</span></div></div>
       <button className={`settings-link ${page==='settings'?'active':''}`} onClick={()=>setPage('settings')}><Settings size={20}/>设置</button>
-      <div className="profile"><div className="avatar">M</div><div><strong>学习者 Mia</strong><span>{state.level} · {state.accent}发音</span></div><MoreHorizontal size={18}/></div>
+      <div className="profile"><div className="avatar">{state.displayName.trim().charAt(0).toUpperCase() || "W"}</div><div><strong>{state.displayName || "学习者"}</strong><span>{state.level} · {state.accent}发音</span></div><MoreHorizontal size={18}/></div>
     </div>
   </aside>
 }
@@ -108,7 +108,7 @@ function Dashboard({state,learnedCount,setPage,notify}:{state:AppState,learnedCo
   const pct = Math.round(learnedCount/20*100)
   const date = new Intl.DateTimeFormat('zh-CN',{month:'long',day:'numeric',weekday:'long'}).format(new Date())
   return <div className="page dashboard-page">
-    <header className="page-title"><div><p className="eyebrow">{date}</p><h1>早上好，Mia <span>👋</span></h1><p>今天的森林里，似乎有一道新的光。</p></div><button className="icon-btn" title="切换深色模式"><Moon size={20}/></button></header>
+    <header className="page-title"><div><p className="eyebrow">{date}</p><h1>早上好，{state.displayName || "学习者"} <span>👋</span></h1><p>今天的森林里，似乎有一道新的光。</p></div><button className="icon-btn" title="切换深色模式"><Moon size={20}/></button></header>
     <section className="hero-card">
       <div className="hero-copy"><div className="hero-badges"><span><Sparkles size={14}/>今日旅程</span><span>约 18 分钟</span></div><h2>{state.completed?'今日冒险已完成！':'20 个词，正在等待被写进故事。'}</h2><p>{state.completed?'你守住了连续学习记录。明天，故事会继承今天的选择。':'先认识它们、读出它们，然后用它们打开古老观测站的门。'}</p><div className="hero-progress"><div><span>今日进度</span><strong>{learnedCount} / 20</strong></div><div className="progress-track"><i style={{width:`${pct}%`}}/></div></div><button className="light-button" onClick={()=>setPage(learnedCount===20?'quiz':'learn')}>{learnedCount?'继续今日学习':'开始今日学习'}<ArrowRight size={18}/></button></div>
       <div className="hero-art"><div className="moon-orb"/><div className="mountains"><i/><i/><i/></div><div className="path-line"/><div className="hero-book"><span>W</span></div><div className="floating-word w1">discover</div><div className="floating-word w2">courage</div><div className="floating-word w3">signal</div></div>
@@ -196,7 +196,7 @@ function Vocabulary({state}:{state:AppState}) {
 
 function makeMarkdown(state:AppState) {
   const date=new Date().toISOString().slice(0,10), choice=storyChoices.find(c=>c.id===state.storyChoice)?.title||'尚未选择'
-  return `---\ndate: ${date}\nlevel: ${state.level}\nstory: 雾林中的观测站\ntags: [英语学习, WordQuest, 每日故事]\n---\n\n# ${date} 英语学习记录\n\n## 今日学习概览\n- 目标词：20\n- 已学习：${Object.keys(state.learned).length}\n- 小测状态：${state.quizDone?'已完成':'未完成'}\n- 连续学习：${state.streak} 天\n\n## 今日 20 词\n${todayWords.map(w=>`- **${w.word}** ${w.phonetic} — ${w.meaning}\n  - ${w.example}`).join('\n')}\n\n## 今日故事：The Signal in the Forest\n\n${storyParagraphs.join('\n\n')}\n\n> 今日选择：${choice}\n\n## 明日复习建议\n重点复习 courage、whisper、ancient，并再次朗读故事第二段。\n`
+  return `---\ndate: ${date}\nlevel: ${state.level}\nstory: 雾林中的观测站\ntags: [英语学习, WordQuest, 每日故事]\n---\n\n# ${date} 英语学习记录\n\n## 今日学习概览\n- 目标词：20\n- 已学习：${Object.keys(state.learned).length}\n- 小测状态：${state.quizDone?'已完成':'未完成'}\n- 连续学习：${state.streak} 天\n- 学习者：${state.displayName || '学习者'}\n\n## 今日 20 词\n${todayWords.map(w=>`- **${w.word}** ${w.phonetic} — ${w.meaning}\n  - ${w.example}`).join('\n')}\n\n## 今日故事：The Signal in the Forest\n\n${storyParagraphs.join('\n\n')}\n\n> 今日选择：${choice}\n\n## 明日复习建议\n重点复习 courage、whisper、ancient，并再次朗读故事第二段。\n`
 }
 function downloadText(name:string,text:string) { const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/markdown;charset=utf-8'}));a.download=name;a.click();URL.revokeObjectURL(a.href) }
 function Report({state,notify}:{state:AppState,notify:(s:string)=>void}) {
@@ -205,7 +205,7 @@ function Report({state,notify}:{state:AppState,notify:(s:string)=>void}) {
 }
 
 function SettingsPage({state,patch,notify}:{state:AppState,patch:(p:Partial<AppState>)=>void,notify:(s:string)=>void}) {
-  return <div className="page settings-page"><header className="page-title"><div><p className="eyebrow">PREFERENCES</p><h1>设置</h1><p>调整你的学习节奏、故事与数据方式。</p></div></header><div className="settings-grid"><section className="panel settings-section"><h3><BookOpen/>学习设置</h3><label><span><b>英语等级</b><small>控制单词和故事难度</small></span><select value={state.level} onChange={e=>patch({level:e.target.value})}><option>A1</option><option>A2</option><option>B1</option><option>B2</option></select></label><label><span><b>每日目标</b><small>首页始终展示 20 个目标词</small></span><select defaultValue="15+5"><option value="15+5">15 新词 + 5 复习</option><option>20 个新词</option><option>10 新词 + 10 复习</option><option>AI 动态安排</option></select></label><label><span><b>发音偏好</b><small>用于单词与故事朗读</small></span><div className="segment"><button className={state.accent==='美式'?'active':''} onClick={()=>patch({accent:'美式'})}>美式</button><button className={state.accent==='英式'?'active':''} onClick={()=>patch({accent:'英式'})}>英式</button></div></label></section><section className="panel settings-section"><h3><WandSparkles/>故事设置</h3><label><span><b>长期故事类型</b><small>每天的剧情会持续推进</small></span><select value={state.genre} onChange={e=>patch({genre:e.target.value})}><option>奇幻冒险</option><option>科幻探索</option><option>都市生活</option><option>悬疑推理</option></select></label><label><span><b>故事长度</b><small>适合 {state.level} 水平</small></span><select defaultValue="medium"><option value="short">短 · 100—180 词</option><option value="medium">标准 · 180—300 词</option><option value="long">长 · 300—500 词</option></select></label></section><section className="panel settings-section"><h3><Cloud/>Obsidian 与数据</h3><label><span><b>导出模式</b><small>第一版使用安全的本地 Markdown 下载</small></span><button className="outline" onClick={()=>{downloadText('WordQuest-今日学习.md',makeMarkdown(state));notify('今日笔记已导出')}}><Download/>导出今日笔记</button></label><label><span><b>本地数据</b><small>学习记录保存在当前浏览器</small></span><button className="outline danger" onClick={()=>{if(confirm('确定重置所有演示数据？')){localStorage.removeItem('wordquest-state');location.reload()}}}>重置数据</button></label></section><section className="panel settings-section about"><Logo/><p>每天学 20 个词，把它们变成属于你的英语故事。</p><span>WordQuest MVP · 本地优先版本</span></section></div></div>
+  return <div className="page settings-page"><header className="page-title"><div><p className="eyebrow">PREFERENCES</p><h1>设置</h1><p>调整你的学习节奏、故事与数据方式。</p></div></header><div className="settings-grid"><section className="panel settings-section profile-settings"><h3><Settings/>个人资料</h3><label><span><b>你的名字</b><small>用于首页问候、侧边栏与学习笔记</small></span><div className="name-editor"><input aria-label="你的名字" value={state.displayName} maxLength={20} placeholder="输入你的名字" onChange={e=>patch({displayName:e.target.value})} onBlur={()=>patch({displayName:state.displayName.trim() || "学习者"})}/><span>{state.displayName.length}/20</span></div></label><div className="profile-preview"><div className="avatar">{state.displayName.trim().charAt(0).toUpperCase() || "W"}</div><div><b>{state.displayName || "学习者"}</b><small>你的个性化问候会立即更新</small></div></div></section><section className="panel settings-section"><h3><BookOpen/>学习设置</h3><label><span><b>英语等级</b><small>控制单词和故事难度</small></span><select value={state.level} onChange={e=>patch({level:e.target.value})}><option>A1</option><option>A2</option><option>B1</option><option>B2</option></select></label><label><span><b>每日目标</b><small>首页始终展示 20 个目标词</small></span><select defaultValue="15+5"><option value="15+5">15 新词 + 5 复习</option><option>20 个新词</option><option>10 新词 + 10 复习</option><option>AI 动态安排</option></select></label><label><span><b>发音偏好</b><small>用于单词与故事朗读</small></span><div className="segment"><button className={state.accent==='美式'?'active':''} onClick={()=>patch({accent:'美式'})}>美式</button><button className={state.accent==='英式'?'active':''} onClick={()=>patch({accent:'英式'})}>英式</button></div></label></section><section className="panel settings-section"><h3><WandSparkles/>故事设置</h3><label><span><b>长期故事类型</b><small>每天的剧情会持续推进</small></span><select value={state.genre} onChange={e=>patch({genre:e.target.value})}><option>奇幻冒险</option><option>科幻探索</option><option>都市生活</option><option>悬疑推理</option></select></label><label><span><b>故事长度</b><small>适合 {state.level} 水平</small></span><select defaultValue="medium"><option value="short">短 · 100—180 词</option><option value="medium">标准 · 180—300 词</option><option value="long">长 · 300—500 词</option></select></label></section><section className="panel settings-section"><h3><Cloud/>Obsidian 与数据</h3><label><span><b>导出模式</b><small>第一版使用安全的本地 Markdown 下载</small></span><button className="outline" onClick={()=>{downloadText('WordQuest-今日学习.md',makeMarkdown(state));notify('今日笔记已导出')}}><Download/>导出今日笔记</button></label><label><span><b>本地数据</b><small>学习记录保存在当前浏览器</small></span><button className="outline danger" onClick={()=>{if(confirm('确定重置所有演示数据？')){localStorage.removeItem('wordquest-state');location.reload()}}}>重置数据</button></label></section><section className="panel settings-section about"><Logo/><p>每天学 20 个词，把它们变成属于你的英语故事。</p><span>WordQuest MVP · 本地优先版本</span></section></div></div>
 }
 
 export default App

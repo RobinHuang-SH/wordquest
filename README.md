@@ -53,3 +53,11 @@ pnpm preview
 3. 接入 Azure Speech 等专业发音评测。
 4. 增加 Obsidian URI / Tauri 桌面同步助手。
 5. 将本地示例词库替换为可授权的 CET、雅思或高频词库。
+
+## 开发路线与 Git 分支
+
+项目的逐步完善计划见 `ROADMAP.md`。采用“一项优化一个分支”，当前首个优化分支为：
+
+```text
+feature/edit-profile-name
+```
