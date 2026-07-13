@@ -1,0 +1,83 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "WordQuest API",
+    "description": "词境英语的服务端 API。当前阶段提供基础设施与系统接口。",
+    "version": "0.1.0"
+  },
+  "components": { "schemas": {} },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "服务健康检查",
+        "tags": ["system"],
+        "description": "返回 API 进程、环境和运行时状态。",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "service",
+                    "version",
+                    "environment",
+                    "timestamp",
+                    "uptimeSeconds"
+                  ],
+                  "properties": {
+                    "status": { "type": "string", "enum": ["ok"] },
+                    "service": { "type": "string" },
+                    "version": { "type": "string" },
+                    "environment": { "type": "string" },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "uptimeSeconds": { "type": "number", "minimum": 0 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1": {
+      "get": {
+        "summary": "API 版本信息",
+        "tags": ["system"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["name", "version", "status", "documentation", "plannedResources"],
+                  "properties": {
+                    "name": { "type": "string" },
+                    "version": { "type": "string" },
+                    "status": { "type": "string" },
+                    "documentation": { "type": "string" },
+                    "plannedResources": { "type": "array", "items": { "type": "string" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [{ "url": "http://localhost:3001", "description": "development" }],
+  "tags": [
+    { "name": "system", "description": "服务状态与 API 元信息" },
+    { "name": "daily-session", "description": "每日学习任务" },
+    { "name": "words", "description": "词汇与学习结果" },
+    { "name": "pronunciation", "description": "发音评测与语音" },
+    { "name": "quiz", "description": "单词测试" },
+    { "name": "stories", "description": "每日故事与故事线" },
+    { "name": "reports", "description": "学习周报" },
+    { "name": "obsidian", "description": "Obsidian 导出与同步" }
+  ]
+}

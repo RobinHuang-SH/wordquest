@@ -9,6 +9,7 @@ export default tseslint.config(
   {
     ignores: [
       'dist',
+      'dist-server',
       'node_modules',
       'playwright-report',
       'test-results',
@@ -28,6 +29,10 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
     },
+  },
+  {
+    files: ['server/**/*.ts'],
+    languageOptions: { globals: globals.node },
   },
   {
     files: ['**/*.test.{ts,tsx}', 'e2e/**/*.ts'],

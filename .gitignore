@@ -1,5 +1,6 @@
 ﻿node_modules/
 dist/
+dist-server/
 work/
 outputs/
 *.log
@@ -15,3 +16,8 @@ vite.config.d.ts
 coverage/
 playwright-report/
 test-results/
+
+# Local API configuration
+.env
+.env.*
+!.env.example

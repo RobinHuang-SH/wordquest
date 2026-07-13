@@ -78,14 +78,14 @@ main（稳定可运行）
 
 ## 阶段 2：后端账户与跨设备同步
 
-### 2.1 `feature/api-foundation`（下一阶段）
+### 2.1 `feature/api-foundation`（已完成）
 
 - 建立 Node/NestJS 或 Fastify API
 - 环境变量与配置管理
 - OpenAPI 接口文档
 - 健康检查、日志和统一错误结构
 
-### 2.2 `feature/postgres-schema`
+### 2.2 `feature/postgres-schema`（下一阶段）
 
 - PostgreSQL + Prisma
 - 落地 PRD 中 users、vocabulary、user_word_state、daily_sessions、story_series 等表
