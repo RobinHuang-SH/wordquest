@@ -47,4 +47,38 @@ describe('session word selection', () => {
     expect(words.filter((word) => word.review)).toHaveLength(10)
     expect(new Set(words.map((word) => word.word))).toHaveLength(20)
   })
+
+  it('prefers a server-generated plan for the active date', () => {
+    const serverWord = { ...todayWords[0], id: 'word-1', word: 'observe', review: true }
+    const state = makeState({
+      dailyWordPlan: {
+        sessionId: 'session-1',
+        date: '2026-07-12',
+        mix: 'dynamic',
+        words: [serverWord],
+        newCount: 0,
+        reviewCount: 1,
+      },
+    })
+
+    expect(getSessionWords(state)).toEqual([serverWord])
+    expect(getReviewCount(state)).toBe(1)
+  })
+
+  it('ignores a stale server plan after the active date changes', () => {
+    const state = makeState({
+      activeDate: '2026-07-13',
+      dailyWordPlan: {
+        sessionId: 'session-1',
+        date: '2026-07-12',
+        mix: '15+5',
+        words: [{ ...todayWords[0], word: 'stale' }],
+        newCount: 15,
+        reviewCount: 5,
+      },
+    })
+
+    expect(getSessionWords(state)).toHaveLength(20)
+    expect(getSessionWords(state).some((word) => word.word === 'stale')).toBe(false)
+  })
 })

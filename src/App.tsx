@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CheckCircle2 } from 'lucide-react'
-import type { AppState, Page } from './domain/models'
+import type { AppState, Knowledge, Page, Word } from './domain/models'
 import { completeDailySession, getPreviousSession } from './domain/sessions'
 import { loadAppState, saveAppState } from './data/appStateRepository'
 import { Sidebar, MobileHeader, MobileMenu } from './components/AppShell'
@@ -16,6 +16,7 @@ import { Report } from './pages/Report'
 import { SettingsPage } from './pages/SettingsPage'
 import { usePwaLifecycle } from './services/pwa'
 import { useAccountSync } from './services/useAccountSync'
+import { loadDailyPlan, submitWordReview } from './services/vocabulary'
 import './styles.css'
 
 function App() {
@@ -73,10 +74,52 @@ function App() {
   }, [])
 
   const patch = (next: Partial<AppState>) => setState((current) => ({ ...current, ...next }))
-  const notify = (text: string) => {
+  const notify = useCallback((text: string) => {
     setToast(text)
     window.setTimeout(() => setToast(''), 2400)
-  }
+  }, [])
+  useEffect(() => {
+    const session = accountSync.session
+    if (!session) {
+      queueMicrotask(() =>
+        setState((current) =>
+          current.dailyWordPlan ? { ...current, dailyWordPlan: null } : current,
+        ),
+      )
+      return
+    }
+    if (!state.onboarded) return
+    if (state.dailyWordPlan?.date === state.activeDate && state.dailyWordPlan.mix === state.wordMix)
+      return
+    let cancelled = false
+    void loadDailyPlan(session, state.activeDate, state.wordMix)
+      .then((dailyWordPlan) => {
+        if (!cancelled) setState((current) => ({ ...current, dailyWordPlan, currentWord: 0 }))
+      })
+      .catch(() => {
+        if (!cancelled) notify('Adaptive vocabulary plan is unavailable; using the local word list')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [
+    accountSync.session,
+    notify,
+    state.activeDate,
+    state.dailyWordPlan,
+    state.onboarded,
+    state.wordMix,
+  ])
+  const reviewWord = useCallback(
+    (word: Word, knowledge: Knowledge) => {
+      const session = accountSync.session
+      if (!session || !word.id) return
+      void submitWordReview(session, word, knowledge, state.dailyWordPlan?.sessionId).catch(() =>
+        notify('Progress was saved locally; you can keep learning'),
+      )
+    },
+    [accountSync.session, notify, state.dailyWordPlan?.sessionId],
+  )
   const completeToday = (storyChoice: string) =>
     setState((current) => completeDailySession(current, storyChoice))
   const previousSession = getPreviousSession(state)
@@ -113,7 +156,13 @@ function App() {
           />
         )}
         {page === 'learn' && (
-          <Learn state={state} patch={patch} setPage={setPage} notify={notify} />
+          <Learn
+            state={state}
+            patch={patch}
+            setPage={setPage}
+            notify={notify}
+            onReviewWord={reviewWord}
+          />
         )}
         {page === 'quiz' && <Quiz state={state} patch={patch} setPage={setPage} />}
         {page === 'story' && (

@@ -100,7 +100,7 @@ main（稳定可运行）
 
 ## 阶段 3：真正的 AI 学习闭环
 
-### 3.1 `feature/vocabulary-engine`
+### 3.1 `feature/vocabulary-engine` (completed)
 
 - 可授权高频词库/CET/雅思词库
 - 间隔重复算法
@@ -171,3 +171,7 @@ main（稳定可运行）
 - **v1.0 正式版**：完成阶段 5，并完成性能、安全和稳定性验收
 
 Auth/sync implementation: scrypt password hashing, revocable opaque sessions, local snapshot import, a persistent offline queue, revision-based deterministic merging, and sync_conflicts audit records.
+
+Vocabulary engine implementation: licensed-source metadata, a 56-word curated starter catalog, simplified SM-2 scheduling, weakness-weighted review priority, authenticated daily-plan generation, idempotent sessions, and non-blocking frontend feedback submission.
+
+Current next branch: `feature/llm-story-service`.

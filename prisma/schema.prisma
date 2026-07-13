@@ -104,6 +104,9 @@ model Vocabulary {
   phoneticUk            String?                @map("phonetic_uk") @db.VarChar(100)
   frequencyRank         Int?                   @map("frequency_rank")
   exampleSentence       String                 @map("example_sentence") @db.Text
+  sourceName            String                 @default("wordquest-curated") @map("source_name") @db.VarChar(100)
+  sourceLicense         String                 @default("internal-curated") @map("source_license") @db.VarChar(100)
+  collection            String                 @default("daily-frequency") @db.VarChar(50)
   createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
   userStates            UserWordState[]
@@ -130,6 +133,9 @@ model UserWordState {
   nextReviewAt       DateTime?      @map("next_review_at") @db.Timestamptz(3)
   isDifficult        Boolean        @default(false) @map("is_difficult")
   isFavorite         Boolean        @default(false) @map("is_favorite")
+  easeFactor         Float          @default(2.5) @map("ease_factor")
+  reviewIntervalDays Int            @default(0) @map("review_interval_days")
+  lapseCount         Int            @default(0) @map("lapse_count")
   createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
   user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)

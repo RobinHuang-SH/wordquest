@@ -34,7 +34,7 @@ import {
   WandSparkles,
   X,
 } from 'lucide-react'
-import type { AppState, Knowledge, Page } from '../domain/models'
+import type { AppState, Knowledge, Page, Word } from '../domain/models'
 import { getReviewCount, getSessionWords } from '../domain/learning'
 import { speak } from '../services/speech'
 
@@ -43,14 +43,17 @@ export function Learn({
   patch,
   setPage,
   notify,
+  onReviewWord,
 }: {
   state: AppState
   patch: (p: Partial<AppState>) => void
   setPage: (p: Page) => void
   notify: (s: string) => void
+  onReviewWord?: (word: Word, knowledge: Knowledge) => void
 }) {
   const sessionWords = getSessionWords(state)
-  const index = Math.min(state.currentWord, 19),
+  const total = sessionWords.length
+  const index = Math.min(state.currentWord, Math.max(0, total - 1)),
     word = sessionWords[index]
   const [showMeaning, setShowMeaning] = useState(true),
     [recording, setRecording] = useState(false),
@@ -59,9 +62,10 @@ export function Learn({
     chunks = useRef<Blob[]>([])
   const choose = (v: Knowledge) => {
     const learned = { ...state.learned, [word.word]: v }
-    const next = Math.min(19, index + 1)
+    const next = Math.min(total - 1, index + 1)
     patch({ learned, currentWord: next })
-    if (index === 19) notify('20 个目标词已完成，测试已解锁！')
+    onReviewWord?.(word, v)
+    if (index === total - 1) notify('20 个目标词已完成，测试已解锁！')
   }
   const startRecord = async () => {
     if (recording) {
@@ -99,12 +103,14 @@ export function Learn({
             role="progressbar"
             aria-label="单词学习进度"
             aria-valuemin={1}
-            aria-valuemax={20}
+            aria-valuemax={total}
             aria-valuenow={index + 1}
           >
-            <i style={{ width: `${((index + 1) / 20) * 100}%` }} />
+            <i style={{ width: `${((index + 1) / total) * 100}%` }} />
           </div>
-          <b>{index + 1} / 20</b>
+          <b>
+            {index + 1} / {total}
+          </b>
         </div>
         <button className="icon-btn" aria-label="更多学习选项">
           <MoreHorizontal aria-hidden="true" />
@@ -234,7 +240,7 @@ export function Learn({
               上一个
             </button>
             <span>键盘提示：按 1 / 2 / 3 选择掌握度</span>
-            {index < 19 ? (
+            {index < total - 1 ? (
               <button onClick={() => patch({ currentWord: index + 1 })}>
                 下一个
                 <ArrowRight />

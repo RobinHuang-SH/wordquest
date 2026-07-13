@@ -25,6 +25,15 @@ export type DailySession = {
   completedAt: string
 }
 
+export type DailyWordPlan = {
+  sessionId: string
+  date: string
+  mix: WordMix
+  words: Word[]
+  newCount: number
+  reviewCount: number
+}
+
 export type StoryNode = {
   date: string
   choiceId: string
@@ -55,6 +64,7 @@ export type AppState = User & {
   highContrast: boolean
   reducedMotion: boolean
   activeDate: string
+  dailyWordPlan: DailyWordPlan | null
   sessions: Record<string, DailySession>
 }
 
