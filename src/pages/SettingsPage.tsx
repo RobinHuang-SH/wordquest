@@ -19,6 +19,8 @@ import { makeMarkdown } from '../services/markdown'
 import { downloadText } from '../services/download'
 import { Logo } from '../components/AppShell'
 import type { PwaLifecycle } from '../services/pwa'
+import type { AccountSyncController } from '../services/useAccountSync'
+import { AccountSyncPanel } from '../components/AccountSyncPanel'
 
 export function SettingsPage({
   state,
@@ -26,12 +28,14 @@ export function SettingsPage({
   notify,
   pwa,
   onShowShortcuts,
+  accountSync,
 }: {
   state: AppState
   patch: (p: Partial<AppState>) => void
   notify: (s: string) => void
   pwa: PwaLifecycle
   onShowShortcuts: () => void
+  accountSync: AccountSyncController
 }) {
   const [installHelp, setInstallHelp] = useState(false)
 
@@ -45,6 +49,7 @@ export function SettingsPage({
         </div>
       </header>
       <div className="settings-grid">
+        <AccountSyncPanel account={accountSync} displayName={state.displayName} notify={notify} />
         <section className="panel settings-section profile-settings">
           <h3>
             <Settings />

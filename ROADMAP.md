@@ -91,7 +91,7 @@ main（稳定可运行）
 - 落地 PRD 中 users、vocabulary、user_word_state、daily_sessions、story_series 等表
 - Migration 与种子数据
 
-### 2.3 `feature/auth-sync`（下一阶段）
+### 2.3 `feature/auth-sync` (completed)
 
 - 邮箱登录或第三方登录
 - 本地数据迁移到用户账户
@@ -169,3 +169,5 @@ main（稳定可运行）
 - **v0.5 云端 AI 版**：完成阶段 2—3
 - **v0.8 语音增强版**：完成阶段 4
 - **v1.0 正式版**：完成阶段 5，并完成性能、安全和稳定性验收
+
+Auth/sync implementation: scrypt password hashing, revocable opaque sessions, local snapshot import, a persistent offline queue, revision-based deterministic merging, and sync_conflicts audit records.

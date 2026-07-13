@@ -1,5 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 
+const availableResources = ['auth', 'sync']
+
 const plannedResources = [
   'daily-session',
   'words',
@@ -21,12 +23,20 @@ export function registerApiRoot(app: FastifyInstance) {
         response: {
           200: {
             type: 'object',
-            required: ['name', 'version', 'status', 'documentation', 'plannedResources'],
+            required: [
+              'name',
+              'version',
+              'status',
+              'documentation',
+              'availableResources',
+              'plannedResources',
+            ],
             properties: {
               name: { type: 'string' },
               version: { type: 'string' },
               status: { type: 'string' },
               documentation: { type: 'string' },
+              availableResources: { type: 'array', items: { type: 'string' } },
               plannedResources: { type: 'array', items: { type: 'string' } },
             },
           },
@@ -36,8 +46,9 @@ export function registerApiRoot(app: FastifyInstance) {
     async () => ({
       name: 'WordQuest API',
       version: 'v1',
-      status: 'foundation-ready',
+      status: 'account-sync-ready',
       documentation: '/docs',
+      availableResources,
       plannedResources,
     }),
   )

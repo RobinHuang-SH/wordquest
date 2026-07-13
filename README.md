@@ -160,3 +160,29 @@ localStorage 当前使用带 `version` 的数据信封；旧版直接保存的�
 ```text
 feature/auth-sync
 ```
+
+## Account authentication and cross-device sync
+
+The `feature/auth-sync` stage adds an end-to-end account path without requiring a third-party identity provider:
+
+- Email/password registration and login using Node.js `scrypt` password hashing.
+- Opaque 30-day bearer sessions; only SHA-256 token hashes are stored in PostgreSQL.
+- The Settings page can create an account, sign in, sign out, and manually synchronize.
+- The first sign-in imports the existing local learning snapshot into the account.
+- Later changes are synchronized automatically after a short debounce. Offline changes are coalesced into a persistent queue and flushed when connectivity returns.
+- Server snapshots use monotonically increasing revisions. Stale updates are deterministically merged, preserving stronger vocabulary knowledge and the newest daily-session record, and are audited in `sync_conflicts`.
+
+API endpoints:
+
+```text
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+GET  /api/v1/auth/me
+POST /api/v1/auth/logout
+GET  /api/v1/sync/state
+POST /api/v1/sync/import
+PUT  /api/v1/sync/state
+GET  /api/v1/sync/conflicts
+```
+
+Set `VITE_API_BASE_URL` when the frontend cannot reach the API at its default `http://localhost:3001`. The next roadmap branch is `feature/vocabulary-engine`.
