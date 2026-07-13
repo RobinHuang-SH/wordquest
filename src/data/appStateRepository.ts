@@ -8,7 +8,7 @@ import {
 
 const STORAGE_KEY = 'wordquest-state'
 const BACKUP_KEY = 'wordquest-state-backup'
-export const APP_STATE_SCHEMA_VERSION = 4
+export const APP_STATE_SCHEMA_VERSION = 5
 
 type PersistedEnvelope = { version: number; state: Partial<AppState> }
 type Migration = (state: Partial<AppState>) => Partial<AppState>
@@ -22,6 +22,7 @@ const migrations: Record<number, Migration> = {
     reducedMotion: state.reducedMotion ?? false,
   }),
   3: (state) => ({ ...state, dailyWordPlan: state.dailyWordPlan ?? null }),
+  4: (state) => ({ ...state, dailyStory: state.dailyStory ?? null }),
 }
 
 function unwrapPersistedState(raw: unknown): PersistedEnvelope {
@@ -55,6 +56,7 @@ function normalizeState(candidate: Partial<AppState>): AppState {
     ...candidate,
     activeDate: candidate.activeDate || today,
     dailyWordPlan: candidate.dailyWordPlan ?? null,
+    dailyStory: candidate.dailyStory ?? null,
     sessions: candidate.sessions || {},
   } as AppState
   if (merged.completed && merged.storyChoice && !merged.sessions[merged.activeDate]) {

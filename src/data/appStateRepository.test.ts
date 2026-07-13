@@ -70,6 +70,15 @@ describe('state migrations', () => {
     expect(migrated.dailyWordPlan).toBeNull()
   })
 
+  it('adds the generated daily story default when migrating a version 4 snapshot', () => {
+    const migrated = migrateAppState({
+      version: 4,
+      state: { displayName: 'Ava', activeDate: '2026-07-12' },
+    })
+
+    expect(migrated.dailyStory).toBeNull()
+  })
+
   it('converts a legacy completed day into a session', () => {
     const migrated = migrateAppState({
       onboarded: true,

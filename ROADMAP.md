@@ -107,7 +107,7 @@ main（稳定可运行）
 - 动态生成 15 新词 + 5 复习词
 - 根据错误率与发音弱项安排复习
 
-### 3.2 `feature/llm-story-service`
+### 3.2 `feature/llm-story-service` (completed)
 
 - 服务端 LLM 接入，API Key 不进入前端
 - 固定 JSON Schema 输出
@@ -174,4 +174,6 @@ Auth/sync implementation: scrypt password hashing, revocable opaque sessions, lo
 
 Vocabulary engine implementation: licensed-source metadata, a 56-word curated starter catalog, simplified SM-2 scheduling, weakness-weighted review priority, authenticated daily-plan generation, idempotent sessions, and non-blocking frontend feedback submission.
 
-Current next branch: `feature/llm-story-service`.
+LLM story service implementation: server-only provider credentials, strict JSON Schema output, transient retries, request timeouts, per-user rate limiting, deterministic fallback stories, idempotent story persistence, prompt versioning, and generation audit records.
+
+Current next branch: `feature/story-validation`.

@@ -99,3 +99,36 @@ export interface VocabularyService {
     lapseCount: number
   }>
 }
+
+export type StoryLength = 'short' | 'medium' | 'long'
+export type StoryDocument = {
+  sessionId: string
+  storyNodeId: string
+  date: string
+  title: string
+  titleZh: string
+  summary: string
+  paragraphs: Array<{ en: string; zh: string }>
+  choices: Array<{
+    id: string
+    title: string
+    en: string
+    hint: string
+    continuationSummary: string
+  }>
+  stateBefore: Record<string, unknown>
+  stateAfter: Record<string, unknown>
+  vocabularyCoverage: string[]
+  generation: {
+    status: 'SUCCESS' | 'FALLBACK'
+    provider: string
+    model: string
+    promptVersion: number
+  }
+}
+export interface StoryService {
+  getOrGenerate(
+    userId: string,
+    input: { sessionId: string; length: StoryLength; previousChoice?: string },
+  ): Promise<StoryDocument>
+}

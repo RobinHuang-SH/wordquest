@@ -792,6 +792,182 @@
           }
         }
       }
+    },
+    "/api/v1/stories/generate": {
+      "post": {
+        "summary": "Generate or read the structured story for a daily session",
+        "tags": ["stories"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["sessionId"],
+                "properties": {
+                  "sessionId": { "type": "string", "format": "uuid" },
+                  "length": {
+                    "type": "string",
+                    "enum": ["short", "medium", "long"],
+                    "default": "medium"
+                  },
+                  "previousChoice": { "type": "string", "maxLength": 100 }
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "sessionId",
+                    "storyNodeId",
+                    "date",
+                    "title",
+                    "titleZh",
+                    "summary",
+                    "paragraphs",
+                    "choices",
+                    "stateBefore",
+                    "stateAfter",
+                    "vocabularyCoverage",
+                    "generation"
+                  ],
+                  "properties": {
+                    "sessionId": { "type": "string" },
+                    "storyNodeId": { "type": "string" },
+                    "date": { "type": "string", "format": "date" },
+                    "title": { "type": "string" },
+                    "titleZh": { "type": "string" },
+                    "summary": { "type": "string" },
+                    "paragraphs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["en", "zh"],
+                        "properties": { "en": { "type": "string" }, "zh": { "type": "string" } }
+                      }
+                    },
+                    "choices": {
+                      "type": "array",
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "title", "en", "hint", "continuationSummary"],
+                        "properties": {
+                          "id": { "type": "string" },
+                          "title": { "type": "string" },
+                          "en": { "type": "string" },
+                          "hint": { "type": "string" },
+                          "continuationSummary": { "type": "string" }
+                        }
+                      }
+                    },
+                    "stateBefore": { "type": "object", "additionalProperties": true },
+                    "stateAfter": { "type": "object", "additionalProperties": true },
+                    "vocabularyCoverage": { "type": "array", "items": { "type": "string" } },
+                    "generation": {
+                      "type": "object",
+                      "required": ["status", "provider", "model", "promptVersion"],
+                      "properties": {
+                        "status": { "type": "string", "enum": ["SUCCESS", "FALLBACK"] },
+                        "provider": { "type": "string" },
+                        "model": { "type": "string" },
+                        "promptVersion": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "timestamp", "path"],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message", "statusCode", "requestId"],
+                      "properties": {
+                        "code": { "type": "string" },
+                        "message": { "type": "string" },
+                        "statusCode": { "type": "integer" },
+                        "requestId": { "type": "string" },
+                        "details": {}
+                      }
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "path": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "timestamp", "path"],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message", "statusCode", "requestId"],
+                      "properties": {
+                        "code": { "type": "string" },
+                        "message": { "type": "string" },
+                        "statusCode": { "type": "integer" },
+                        "requestId": { "type": "string" },
+                        "details": {}
+                      }
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "path": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "timestamp", "path"],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message", "statusCode", "requestId"],
+                      "properties": {
+                        "code": { "type": "string" },
+                        "message": { "type": "string" },
+                        "statusCode": { "type": "integer" },
+                        "requestId": { "type": "string" },
+                        "details": {}
+                      }
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "path": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "servers": [{ "url": "http://localhost:3001", "description": "development" }],

@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify'
 
-const availableResources = ['auth', 'sync', 'daily-session', 'words']
+const availableResources = ['auth', 'sync', 'daily-session', 'words', 'stories']
 
-const plannedResources = ['pronunciation', 'quiz', 'stories', 'story-series', 'reports', 'obsidian']
+const plannedResources = ['pronunciation', 'quiz', 'story-series', 'reports', 'obsidian']
 
 export function registerApiRoot(app: FastifyInstance) {
   app.get(
@@ -37,7 +37,7 @@ export function registerApiRoot(app: FastifyInstance) {
     async () => ({
       name: 'WordQuest API',
       version: 'v1',
-      status: 'vocabulary-engine-ready',
+      status: 'llm-story-service-ready',
       documentation: '/docs',
       availableResources,
       plannedResources,
