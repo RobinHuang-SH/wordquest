@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import {
+  Accessibility,
   BookOpen,
   Cloud,
   Download,
+  Eye,
+  Keyboard,
   RefreshCw,
   Settings,
   Smartphone,
@@ -22,11 +25,13 @@ export function SettingsPage({
   patch,
   notify,
   pwa,
+  onShowShortcuts,
 }: {
   state: AppState
   patch: (p: Partial<AppState>) => void
   notify: (s: string) => void
   pwa: PwaLifecycle
+  onShowShortcuts: () => void
 }) {
   const [installHelp, setInstallHelp] = useState(false)
 
@@ -70,6 +75,50 @@ export function SettingsPage({
             </div>
           </div>
         </section>
+        <section className="panel settings-section accessibility-settings">
+          <h3>
+            <Accessibility />
+            无障碍与显示
+          </h3>
+          <label>
+            <span>
+              <b>高对比度</b>
+              <small>加强文字、边框、按钮和焦点指示的视觉区分</small>
+            </span>
+            <input
+              className="setting-switch"
+              type="checkbox"
+              checked={state.highContrast}
+              onChange={(event) => patch({ highContrast: event.target.checked })}
+            />
+          </label>
+          <label>
+            <span>
+              <b>减少动态效果</b>
+              <small>关闭浮动、过渡和提示动画，减少视觉干扰</small>
+            </span>
+            <input
+              className="setting-switch"
+              type="checkbox"
+              checked={state.reducedMotion}
+              onChange={(event) => patch({ reducedMotion: event.target.checked })}
+            />
+          </label>
+          <label>
+            <span>
+              <b>键盘快捷键</b>
+              <small>使用 Alt + 1—6 切换页面，按 ? 随时查看帮助</small>
+            </span>
+            <button aria-label="查看快捷键" className="outline" onClick={onShowShortcuts}>
+              <Keyboard aria-hidden="true" />
+              查看快捷键
+            </button>
+          </label>
+          <div className="accessibility-note">
+            <Eye />
+            <span>系统启用“减少动态效果”时，应用也会自动遵循。</span>
+          </div>
+        </section>{' '}
         <section className="panel settings-section">
           <h3>
             <BookOpen />

@@ -1,4 +1,4 @@
-﻿import {
+import {
   ArrowLeft,
   ArrowRight,
   BookMarked,
@@ -38,7 +38,14 @@ export function Onboarding({
         <span>设置你的专属学习旅程</span>
       </div>
       <div className="onboard-card">
-        <div className="stepper">
+        <div
+          className="stepper"
+          role="progressbar"
+          aria-label="首次设置进度"
+          aria-valuemin={1}
+          aria-valuemax={3}
+          aria-valuenow={step}
+        >
           <span className={step >= 1 ? 'done' : ''}>1</span>
           <i className={step >= 2 ? 'done' : ''} />
           <span className={step >= 2 ? 'done' : ''}>2</span>
@@ -55,6 +62,7 @@ export function Onboarding({
                 <button
                   key={l.id}
                   className={state.level === l.id ? 'selected' : ''}
+                  aria-pressed={state.level === l.id}
                   onClick={() => patch({ level: l.id })}
                 >
                   <b>{l.id}</b>
@@ -78,6 +86,7 @@ export function Onboarding({
                 <button
                   key={g}
                   className={state.genre === g ? 'selected' : ''}
+                  aria-pressed={state.genre === g}
                   onClick={() => patch({ genre: g })}
                 >
                   <span>{['🗺️', '🚀', '☕', '🔎', '⛺', '💼'][i]}</span>
@@ -102,12 +111,14 @@ export function Onboarding({
                 <div className="segment">
                   <button
                     className={state.accent === '美式' ? 'active' : ''}
+                    aria-pressed={state.accent === '美式'}
                     onClick={() => patch({ accent: '美式' })}
                   >
                     美式
                   </button>
                   <button
                     className={state.accent === '英式' ? 'active' : ''}
+                    aria-pressed={state.accent === '英式'}
                     onClick={() => patch({ accent: '英式' })}
                   >
                     英式

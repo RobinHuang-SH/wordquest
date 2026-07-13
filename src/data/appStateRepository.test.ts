@@ -48,6 +48,19 @@ describe('state migrations', () => {
     expect(migrated.sessions).toEqual({})
   })
 
+  it('adds accessibility defaults when migrating a version 2 snapshot', () => {
+    const migrated = migrateAppState({
+      version: 2,
+      state: { displayName: 'Ava', activeDate: '2026-07-12' },
+    })
+
+    expect(migrated).toMatchObject({
+      displayName: 'Ava',
+      highContrast: false,
+      reducedMotion: false,
+    })
+  })
+
   it('converts a legacy completed day into a session', () => {
     const migrated = migrateAppState({
       onboarded: true,

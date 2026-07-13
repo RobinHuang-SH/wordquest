@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -93,6 +93,7 @@ export function Story({
         <div>
           <button
             className={translation ? 'active' : ''}
+            aria-pressed={translation}
             onClick={() => setTranslation(!translation)}
           >
             <Languages />
@@ -133,7 +134,7 @@ export function Story({
         <div className="story-text">
           {activeStory.map((p) => (
             <div className="story-paragraph" key={p.en}>
-              <button onClick={() => speak(p.en, 0.72, state.accent)}>
+              <button aria-label="朗读本段英文" onClick={() => speak(p.en, 0.72, state.accent)}>
                 <Volume2 />
               </button>
               <HighlightedStory paragraph={p.en} />
@@ -164,6 +165,7 @@ export function Story({
               <button
                 key={c.id}
                 className={state.storyChoice === c.id ? 'selected' : ''}
+                aria-pressed={state.storyChoice === c.id}
                 onClick={() => {
                   completeToday(c.id)
                   notify(

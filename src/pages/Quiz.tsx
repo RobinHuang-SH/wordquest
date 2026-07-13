@@ -69,7 +69,14 @@ export function Quiz({
         </button>
         <div className="lesson-progress">
           <span>单词小测</span>
-          <div className="progress-track">
+          <div
+            className="progress-track"
+            role="progressbar"
+            aria-label="小测进度"
+            aria-valuemin={1}
+            aria-valuemax={5}
+            aria-valuenow={q + 1}
+          >
             <i style={{ width: `${((q + 1) / 5) * 100}%` }} />
           </div>
           <b>{q + 1} / 5</b>
@@ -90,11 +97,12 @@ export function Quiz({
             听例句
           </button>
         )}
-        <div className="quiz-options">
+        <div className="quiz-options" role="group" aria-label={`第 ${q + 1} 题选项`}>
           {item.options.map((o, i) => (
             <button
               key={o}
               className={selected === o ? 'selected' : ''}
+              aria-pressed={selected === o}
               onClick={() => patch({ quizAnswers: { ...state.quizAnswers, [q]: o } })}
             >
               <span>{String.fromCharCode(65 + i)}</span>
@@ -104,7 +112,7 @@ export function Quiz({
           ))}
         </div>
         <div className="quiz-next">
-          <span>{selected ? '已选择答案' : '请选择一个答案'}</span>
+          <span aria-live="polite">{selected ? '已选择答案' : '请选择一个答案'}</span>
           <button
             disabled={!selected}
             onClick={() => (q < 4 ? setQ(q + 1) : patch({ quizDone: true }))}

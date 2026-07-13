@@ -69,7 +69,7 @@ main（稳定可运行）
 - 安装引导
 - 缓存升级和数据恢复策略
 
-### 1.3 `feature/accessibility`（下一阶段）
+### 1.3 `feature/accessibility`（已完成）
 
 - 键盘操作与快捷键
 - 焦点状态、ARIA 标签、对比度优化
@@ -78,7 +78,7 @@ main（稳定可运行）
 
 ## 阶段 2：后端账户与跨设备同步
 
-### 2.1 `feature/api-foundation`
+### 2.1 `feature/api-foundation`（下一阶段）
 
 - 建立 Node/NestJS 或 Fastify API
 - 环境变量与配置管理

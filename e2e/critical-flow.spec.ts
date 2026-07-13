@@ -117,3 +117,33 @@ test('settings provides install guidance and generated cache metadata', async ({
   await expect(page.getByText(/Chrome/)).toBeVisible()
   await expect(page.getByText(/添加到主屏幕/)).toBeVisible()
 })
+
+test('keyboard navigation and accessibility preferences work', async ({ page }) => {
+  await page.getByRole('main', { name: '主要内容' }).waitFor()
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+  await page.keyboard.press('Tab')
+  const skipLink = page.getByRole('link', { name: '跳到主要内容' })
+  await expect(skipLink).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('main', { name: '主要内容' })).toBeFocused()
+
+  await page.keyboard.press('Alt+6')
+  await expect(page.getByRole('heading', { name: '设置', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '设置', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  )
+
+  await page.getByRole('checkbox', { name: /高对比度/ }).check()
+  await expect(page.locator('.app-shell')).toHaveClass(/high-contrast/)
+
+  await page.getByRole('checkbox', { name: /减少动态效果/ }).check()
+  await expect(page.locator('.app-shell')).toHaveClass(/reduced-motion/)
+
+  await page.getByRole('main', { name: '主要内容' }).focus()
+  await page.keyboard.press('?')
+  await expect(page.getByRole('dialog', { name: '键盘快捷键' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '关闭快捷键帮助' })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: '键盘快捷键' })).toBeHidden()
+})
