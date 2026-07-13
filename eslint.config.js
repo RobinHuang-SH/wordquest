@@ -10,6 +10,7 @@ export default tseslint.config(
     ignores: [
       'dist',
       'dist-server',
+      'server/generated',
       'node_modules',
       'playwright-report',
       'test-results',
@@ -31,7 +32,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['server/**/*.ts'],
+    files: ['server/**/*.ts', 'prisma/**/*.ts', 'prisma.config.ts'],
     languageOptions: { globals: globals.node },
   },
   {

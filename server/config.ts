@@ -9,6 +9,7 @@ export interface ApiConfig {
   CORS_ORIGIN: string
   API_BASE_URL: string
   DOCS_ENABLED: boolean
+  DATABASE_URL: string
 }
 
 export const configSchema = {
@@ -29,6 +30,10 @@ export const configSchema = {
     CORS_ORIGIN: { type: 'string', default: 'http://localhost:5173' },
     API_BASE_URL: { type: 'string', default: 'http://localhost:3001' },
     DOCS_ENABLED: { type: 'boolean', default: true },
+    DATABASE_URL: {
+      type: 'string',
+      default: 'postgresql://wordquest:wordquest@localhost:5432/wordquest?schema=public',
+    },
   },
 } as const
 
