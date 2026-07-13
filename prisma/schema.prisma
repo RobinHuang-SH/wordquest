@@ -58,6 +58,11 @@ enum StorySeriesStatus {
   ARCHIVED
 }
 
+enum StoryGenerationStatus {
+  SUCCESS
+  FALLBACK
+}
+
 enum ObsidianSyncStatus {
   NOT_CONFIGURED
   PENDING
@@ -88,6 +93,7 @@ model User {
   authSessions          AuthSession[]
   syncState             UserSyncState?
   syncConflicts         SyncConflict[]
+  storyGenerations      StoryGeneration[]
 
   @@map("users")
 }
@@ -163,6 +169,7 @@ model DailySession {
   story              StoryNode?         @relation("SelectedSessionStory", fields: [storyId], references: [id], onDelete: SetNull)
   words              DailySessionWord[]
   storyNodes         StoryNode[]        @relation("SessionStoryNodes")
+  storyGeneration    StoryGeneration?
 
   @@unique([userId, sessionDate])
   @@index([userId, status, sessionDate])
@@ -210,31 +217,74 @@ model StorySeries {
 }
 
 model StoryNode {
-  id                 String        @id @default(uuid()) @db.Uuid
-  storySeriesId      String        @map("story_series_id") @db.Uuid
-  sessionId          String        @map("session_id") @db.Uuid
-  parentNodeId       String?       @map("parent_node_id") @db.Uuid
-  title              String?       @db.VarChar(200)
-  content            String        @db.Text
-  summary            String        @db.Text
-  vocabularyCoverage Json          @default("{}") @map("vocabulary_coverage")
-  selectedChoiceId   String?       @unique @map("selected_choice_id") @db.Uuid
-  stateBeforeJson    Json          @default("{}") @map("state_before_json")
-  stateAfterJson     Json          @default("{}") @map("state_after_json")
-  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
-  storySeries        StorySeries   @relation(fields: [storySeriesId], references: [id], onDelete: Cascade)
-  session            DailySession  @relation("SessionStoryNodes", fields: [sessionId], references: [id], onDelete: Cascade)
-  parent             StoryNode?    @relation("StoryTree", fields: [parentNodeId], references: [id], onDelete: SetNull)
-  children           StoryNode[]   @relation("StoryTree")
-  choices            StoryChoice[] @relation("NodeChoices")
-  selectedChoice     StoryChoice?  @relation("SelectedStoryChoice", fields: [selectedChoiceId], references: [id], onDelete: SetNull)
-  selectedForSession DailySession? @relation("SelectedSessionStory")
+  id                 String           @id @default(uuid()) @db.Uuid
+  storySeriesId      String           @map("story_series_id") @db.Uuid
+  sessionId          String           @map("session_id") @db.Uuid
+  parentNodeId       String?          @map("parent_node_id") @db.Uuid
+  title              String?          @db.VarChar(200)
+  content            String           @db.Text
+  summary            String           @db.Text
+  vocabularyCoverage Json             @default("{}") @map("vocabulary_coverage")
+  selectedChoiceId   String?          @unique @map("selected_choice_id") @db.Uuid
+  stateBeforeJson    Json             @default("{}") @map("state_before_json")
+  stateAfterJson     Json             @default("{}") @map("state_after_json")
+  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  storySeries        StorySeries      @relation(fields: [storySeriesId], references: [id], onDelete: Cascade)
+  session            DailySession     @relation("SessionStoryNodes", fields: [sessionId], references: [id], onDelete: Cascade)
+  parent             StoryNode?       @relation("StoryTree", fields: [parentNodeId], references: [id], onDelete: SetNull)
+  children           StoryNode[]      @relation("StoryTree")
+  choices            StoryChoice[]    @relation("NodeChoices")
+  selectedChoice     StoryChoice?     @relation("SelectedStoryChoice", fields: [selectedChoiceId], references: [id], onDelete: SetNull)
+  selectedForSession DailySession?    @relation("SelectedSessionStory")
+  generation         StoryGeneration?
 
   @@index([storySeriesId, createdAt])
   @@index([sessionId])
   @@index([parentNodeId])
   @@map("story_nodes")
+}
+
+model StoryPromptVersion {
+  id                 String            @id @default(uuid()) @db.Uuid
+  promptKey          String            @map("prompt_key") @db.VarChar(100)
+  version            Int
+  systemPrompt       String            @map("system_prompt") @db.Text
+  userPromptTemplate String            @map("user_prompt_template") @db.Text
+  schemaJson         Json              @map("schema_json")
+  isActive           Boolean           @default(true) @map("is_active")
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  generations        StoryGeneration[]
+
+  @@unique([promptKey, version])
+  @@index([promptKey, isActive])
+  @@map("story_prompt_versions")
+}
+
+model StoryGeneration {
+  id              String                @id @default(uuid()) @db.Uuid
+  userId          String                @map("user_id") @db.Uuid
+  sessionId       String                @unique @map("session_id") @db.Uuid
+  storyNodeId     String?               @unique @map("story_node_id") @db.Uuid
+  promptVersionId String                @map("prompt_version_id") @db.Uuid
+  provider        String                @db.VarChar(100)
+  model           String                @db.VarChar(100)
+  status          StoryGenerationStatus
+  attemptCount    Int                   @default(0) @map("attempt_count")
+  latencyMs       Int                   @default(0) @map("latency_ms")
+  fallbackReason  String?               @map("fallback_reason") @db.VarChar(100)
+  errorMessage    String?               @map("error_message") @db.Text
+  requestJson     Json                  @map("request_json")
+  responseJson    Json                  @map("response_json")
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session         DailySession          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  storyNode       StoryNode?            @relation(fields: [storyNodeId], references: [id], onDelete: SetNull)
+  promptVersion   StoryPromptVersion    @relation(fields: [promptVersionId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("story_generations")
 }
 
 model StoryChoice {

@@ -34,6 +34,32 @@ export type DailyWordPlan = {
   reviewCount: number
 }
 
+export type DailyStory = {
+  sessionId: string
+  storyNodeId: string
+  date: string
+  title: string
+  titleZh: string
+  summary: string
+  paragraphs: Array<{ en: string; zh: string }>
+  choices: Array<{
+    id: string
+    title: string
+    en: string
+    hint: string
+    continuationSummary: string
+  }>
+  stateBefore: Record<string, unknown>
+  stateAfter: Record<string, unknown>
+  vocabularyCoverage: string[]
+  generation: {
+    status: 'SUCCESS' | 'FALLBACK'
+    provider: string
+    model: string
+    promptVersion: number
+  }
+}
+
 export type StoryNode = {
   date: string
   choiceId: string
@@ -65,6 +91,7 @@ export type AppState = User & {
   reducedMotion: boolean
   activeDate: string
   dailyWordPlan: DailyWordPlan | null
+  dailyStory: DailyStory | null
   sessions: Record<string, DailySession>
 }
 

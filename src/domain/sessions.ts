@@ -46,6 +46,7 @@ export const createInitialState = (): AppState => ({
   reducedMotion: false,
   activeDate: '',
   dailyWordPlan: null,
+  dailyStory: null,
   sessions: {},
 })
 
@@ -95,6 +96,7 @@ export function resetForNewDay(state: AppState, today = getDateKey()): AppState 
     storyChoice: '',
     completed: false,
     dailyWordPlan: state.dailyWordPlan?.date === today ? state.dailyWordPlan : null,
+    dailyStory: state.dailyStory?.date === today ? state.dailyStory : null,
   }
 }
 

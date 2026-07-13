@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CheckCircle2 } from 'lucide-react'
 import type { AppState, Knowledge, Page, Word } from './domain/models'
-import { completeDailySession, getPreviousSession } from './domain/sessions'
+import { addDays, completeDailySession, getPreviousSession } from './domain/sessions'
 import { loadAppState, saveAppState } from './data/appStateRepository'
 import { Sidebar, MobileHeader, MobileMenu } from './components/AppShell'
 import { AccessibilityHelp } from './components/AccessibilityHelp'
@@ -17,6 +17,7 @@ import { SettingsPage } from './pages/SettingsPage'
 import { usePwaLifecycle } from './services/pwa'
 import { useAccountSync } from './services/useAccountSync'
 import { loadDailyPlan, submitWordReview } from './services/vocabulary'
+import { loadDailyStory } from './services/story'
 import './styles.css'
 
 function App() {
@@ -83,7 +84,9 @@ function App() {
     if (!session) {
       queueMicrotask(() =>
         setState((current) =>
-          current.dailyWordPlan ? { ...current, dailyWordPlan: null } : current,
+          current.dailyWordPlan || current.dailyStory
+            ? { ...current, dailyWordPlan: null, dailyStory: null }
+            : current,
         ),
       )
       return
@@ -94,7 +97,14 @@ function App() {
     let cancelled = false
     void loadDailyPlan(session, state.activeDate, state.wordMix)
       .then((dailyWordPlan) => {
-        if (!cancelled) setState((current) => ({ ...current, dailyWordPlan, currentWord: 0 }))
+        if (!cancelled)
+          setState((current) => ({
+            ...current,
+            dailyWordPlan,
+            dailyStory:
+              current.dailyStory?.sessionId === dailyWordPlan.sessionId ? current.dailyStory : null,
+            currentWord: 0,
+          }))
       })
       .catch(() => {
         if (!cancelled) notify('Adaptive vocabulary plan is unavailable; using the local word list')
@@ -109,6 +119,36 @@ function App() {
     state.dailyWordPlan,
     state.onboarded,
     state.wordMix,
+  ])
+  useEffect(() => {
+    const session = accountSync.session
+    const plan = state.dailyWordPlan
+    if (!session || !plan || plan.date !== state.activeDate || !state.onboarded) return
+    if (state.dailyStory?.sessionId === plan.sessionId) return
+    let cancelled = false
+    void loadDailyStory(session, {
+      sessionId: plan.sessionId,
+      length: state.storyLength,
+      previousChoice: state.sessions[addDays(state.activeDate, -1)]?.storyChoice,
+    })
+      .then((dailyStory) => {
+        if (!cancelled) setState((current) => ({ ...current, dailyStory }))
+      })
+      .catch(() => {
+        if (!cancelled) notify('AI story is unavailable; using the built-in offline story')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [
+    accountSync.session,
+    notify,
+    state.activeDate,
+    state.dailyStory,
+    state.dailyWordPlan,
+    state.onboarded,
+    state.sessions,
+    state.storyLength,
   ])
   const reviewWord = useCallback(
     (word: Word, knowledge: Knowledge) => {

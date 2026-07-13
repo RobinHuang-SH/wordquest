@@ -24,10 +24,11 @@
 - Fastify + TypeScript API foundation with validated environment configuration
 - OpenAPI 3.1, Swagger UI, health checks, structured logs, and unified errors
 - PostgreSQL 17 + Prisma 7 schema, migrations, generated client, and idempotent seed data
+- Server-side structured AI story generation with prompt versioning, retries, timeout, per-user rate limiting, persistence, and deterministic fallback
 
 ## 技术栈
 
-Frontend: React 19 + TypeScript + Vite + Lucide Icons. API: Fastify + TypeScript. Data layer: PostgreSQL 17 + Prisma 7 with the node-postgres driver adapter. Accounts, cross-device synchronization, and the adaptive vocabulary engine are implemented; dynamic LLM story generation is the next roadmap stage.
+Frontend: React 19 + TypeScript + Vite + Lucide Icons. API: Fastify + TypeScript. Data layer: PostgreSQL 17 + Prisma 7 with the node-postgres driver adapter. Accounts, cross-device synchronization, the adaptive vocabulary engine, and dynamic structured story generation are implemented; deeper vocabulary and continuity validation is the next roadmap stage.
 
 ## 本地运行
 
@@ -59,6 +60,12 @@ The API defaults to `http://localhost:3001` and provides:
 - `.env.example`: validated API configuration template.
 
 Fastify writes structured request logs and redacts authorization and cookie headers. Unified error responses include a code, message, HTTP status, request ID, timestamp, and request path.
+
+## Structured AI stories
+
+Authenticated learners can call `POST /api/v1/stories/generate` with a daily session ID and a story length. The server supplies that session's vocabulary to a versioned prompt and requires a fixed bilingual JSON story shape with exactly three choices. Repeated requests for the same session return the same persisted story.
+
+Provider credentials are server-only (`LLM_API_KEY`) and never use a `VITE_` prefix. `LLM_BASE_URL` supports an OpenAI-compatible structured-output endpoint; `LLM_MODEL`, `LLM_TIMEOUT_MS`, `LLM_MAX_RETRIES`, and `LLM_RATE_LIMIT_PER_MINUTE` control generation. Without a key, after transient failures, or when the user limit is reached, the API persists and returns a deterministic fallback story instead of blocking learning. Prompt versions and every generation outcome are stored in `story_prompt_versions` and `story_generations`.
 
 ## PostgreSQL and Prisma
 

@@ -12,11 +12,19 @@ import { registerHealthRoutes } from './routes/health.js'
 import { registerAuthRoutes } from './routes/auth.js'
 import { registerSyncRoutes } from './routes/sync.js'
 import { registerVocabularyRoutes } from './routes/vocabulary.js'
+import { registerStoryRoutes } from './routes/stories.js'
 import { createPrismaClient } from './database/client.js'
 import { PrismaAuthService } from './services/auth-service.js'
 import { PrismaSyncService } from './services/sync-service.js'
 import { PrismaVocabularyService } from './services/vocabulary-service.js'
-import type { AuthService, SyncService, VocabularyService } from './services/contracts.js'
+import { PrismaStoryService } from './services/story-service.js'
+import { OpenAiCompatibleStoryModelClient } from './services/story-model-client.js'
+import type {
+  AuthService,
+  StoryService,
+  SyncService,
+  VocabularyService,
+} from './services/contracts.js'
 
 export interface BuildAppOptions {
   env?: Record<string, string | undefined>
@@ -24,6 +32,7 @@ export interface BuildAppOptions {
   authService?: AuthService
   syncService?: SyncService
   vocabularyService?: VocabularyService
+  storyService?: StoryService
 }
 
 const serviceVersion = '0.1.0'
@@ -94,9 +103,24 @@ export async function buildApp(options: BuildAppOptions = {}) {
   const authService = options.authService ?? new PrismaAuthService(getPrisma())
   const syncService = options.syncService ?? new PrismaSyncService(getPrisma())
   const vocabularyService = options.vocabularyService ?? new PrismaVocabularyService(getPrisma())
+  const modelClient = config.LLM_API_KEY
+    ? new OpenAiCompatibleStoryModelClient({
+        apiKey: config.LLM_API_KEY,
+        baseUrl: config.LLM_BASE_URL,
+        model: config.LLM_MODEL,
+      })
+    : null
+  const storyService =
+    options.storyService ??
+    new PrismaStoryService(getPrisma(), modelClient, {
+      timeoutMs: config.LLM_TIMEOUT_MS,
+      maxRetries: config.LLM_MAX_RETRIES,
+      rateLimitPerMinute: config.LLM_RATE_LIMIT_PER_MINUTE,
+    })
   registerAuthRoutes(app, authService)
   registerSyncRoutes(app, authService, syncService)
   registerVocabularyRoutes(app, authService, vocabularyService)
+  registerStoryRoutes(app, authService, storyService)
   if (prisma) app.addHook('onClose', async () => prisma?.$disconnect())
 
   return app

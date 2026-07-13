@@ -10,6 +10,12 @@ export interface ApiConfig {
   API_BASE_URL: string
   DOCS_ENABLED: boolean
   DATABASE_URL: string
+  LLM_API_KEY: string
+  LLM_BASE_URL: string
+  LLM_MODEL: string
+  LLM_TIMEOUT_MS: number
+  LLM_MAX_RETRIES: number
+  LLM_RATE_LIMIT_PER_MINUTE: number
 }
 
 export const configSchema = {
@@ -34,6 +40,12 @@ export const configSchema = {
       type: 'string',
       default: 'postgresql://wordquest:wordquest@localhost:5432/wordquest?schema=public',
     },
+    LLM_API_KEY: { type: 'string', default: '' },
+    LLM_BASE_URL: { type: 'string', default: 'https://api.openai.com/v1' },
+    LLM_MODEL: { type: 'string', default: 'gpt-4.1-mini' },
+    LLM_TIMEOUT_MS: { type: 'integer', minimum: 1000, default: 15000 },
+    LLM_MAX_RETRIES: { type: 'integer', minimum: 0, maximum: 5, default: 2 },
+    LLM_RATE_LIMIT_PER_MINUTE: { type: 'integer', minimum: 1, default: 5 },
   },
 } as const
 

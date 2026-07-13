@@ -13,26 +13,66 @@ import {
   Volume2,
 } from 'lucide-react'
 import { storyChoices, storyVariants, todayWords } from '../data'
-import type { AppState, DailySession, Page } from '../domain/models'
+import type { AppState, DailySession, Page, Word } from '../domain/models'
 import { choiceContinuations, storyLengthLabels } from '../domain/sessions'
 import { speak } from '../services/speech'
 
-function HighlightedStory({ paragraph }: { paragraph: string }) {
-  const words = todayWords.map((w) => w.word)
-  const regex = new RegExp(`\\b((?:${words.join('|')})(?:s|ed)?)\\b`, 'gi')
+const ui = {
+  storyLocked: '\u4eca\u65e5\u6545\u4e8b\u5c1a\u672a\u89e3\u9501',
+  finishQuiz: '\u5148\u5b8c\u6210\u5355\u8bcd\u5c0f\u6d4b',
+  quizHelp:
+    '\u6d4b\u8bd5\u4f1a\u5e2e\u52a9\u4f60\u5de9\u56fa\u4eca\u5929\u7684\u76ee\u6807\u8bcd\uff0c\u518d\u8fdb\u5165\u6545\u4e8b\u8bed\u5883\u3002',
+  startQuiz: '\u5f00\u59cb\u6d4b\u8bd5',
+  todayHome: '\u4eca\u65e5\u9996\u9875',
+  aiStory: 'AI \u6bcf\u65e5\u6545\u4e8b',
+  localSeries: '\u96fe\u6797\u4e2d\u7684\u89c2\u6d4b\u7ad9',
+  chapter: '\u7b2c 4 \u5929 / \u7b2c\u4e00\u7ae0',
+  bilingual: '\u4e2d\u82f1\u5bf9\u7167',
+  pause: '\u6682\u505c',
+  readAll: '\u6717\u8bfb\u5168\u6587',
+  localTitleZh: '\u68ee\u6797\u91cc\u7684\u4fe1\u53f7',
+  continuity: '\u6628\u65e5\u9009\u62e9\u5df2\u7eed\u5199',
+  today: '\u4eca\u65e5',
+  wordsIncluded: '\u4e2a\u76ee\u6807\u8bcd\u5df2\u878d\u5165',
+  words: '\u8bcd',
+  about: '\u7ea6',
+  minutes: '\u5206\u949f\u9605\u8bfb',
+  readParagraph: '\u6717\u8bfb\u672c\u6bb5\u82f1\u6587',
+  structuredReady: '\u7ed3\u6784\u5316\u6545\u4e8b\u5df2\u5c31\u7eea',
+  offlineStory: '\u672c\u5730\u79bb\u7ebf\u6545\u4e8b',
+  highlighted: '\u5df2\u663e\u793a\u5168\u90e8\u9ad8\u4eae\u8bcd',
+  viewWords: '\u67e5\u770b\u8bcd\u6c47',
+  nextAction: '\u63a5\u4e0b\u6765\uff0c\u7c73\u5a05\u5e94\u8be5\u600e\u4e48\u505a\uff1f',
+  choiceFuture:
+    '\u4f60\u7684\u9009\u62e9\u5c06\u6210\u4e3a\u660e\u5929\u6545\u4e8b\u7684\u8d77\u70b9\u3002',
+  recordUpdated:
+    '\u4eca\u65e5\u8bb0\u5f55\u5df2\u66f4\u65b0\uff0c\u6ca1\u6709\u91cd\u590d\u65b0\u589e',
+  recordSaved: '\u4eca\u65e5\u5b66\u4e60\u8bb0\u5f55\u5df2\u4fdd\u5b58',
+  choiceSaved: '\u9009\u62e9\u5df2\u4fdd\u5b58',
+  tomorrowContinues:
+    '\u660e\u5929\u7684\u6545\u4e8b\u5c06\u4ece\u8fd9\u91cc\u7ee7\u7eed\u3002\u4eca\u5929\u7684\u5b66\u4e60\u8bb0\u5f55\u5df2\u5b8c\u6210\u3002',
+  viewSummary: '\u67e5\u770b\u5b66\u4e60\u603b\u7ed3',
+} as const
+
+function HighlightedStory({ paragraph, words }: { paragraph: string; words: Word[] }) {
+  const targets = words.map((word) => word.word)
+  if (!targets.length) return <p>{paragraph}</p>
+  const escaped = targets.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const regex = new RegExp(`\\b((?:${escaped.join('|')})(?:s|ed)?)\\b`, 'gi')
   const parts = paragraph.split(regex)
   return (
     <p>
-      {parts.map((p, i) =>
-        words.some((w) => p.toLowerCase().startsWith(w)) ? (
-          <mark key={i}>{p}</mark>
+      {parts.map((part, index) =>
+        targets.some((word) => part.toLowerCase().startsWith(word.toLowerCase())) ? (
+          <mark key={index}>{part}</mark>
         ) : (
-          <span key={i}>{p}</span>
+          <span key={index}>{part}</span>
         ),
       )}
     </p>
   )
 }
+
 export function Story({
   state,
   completeToday,
@@ -46,21 +86,26 @@ export function Story({
   setPage: (p: Page) => void
   notify: (s: string) => void
 }) {
-  const [translation, setTranslation] = useState(false),
-    [playing, setPlaying] = useState(false)
-  const activeStory = storyVariants[state.storyLength],
-    storyInfo = storyLengthLabels[state.storyLength]
+  const [translation, setTranslation] = useState(false)
+  const [playing, setPlaying] = useState(false)
+  const generated = state.dailyStory?.date === state.activeDate ? state.dailyStory : null
+  const activeStory = generated?.paragraphs ?? storyVariants[state.storyLength]
+  const activeChoices = generated?.choices ?? storyChoices
+  const targetWords =
+    state.dailyWordPlan?.date === state.activeDate ? state.dailyWordPlan.words : todayWords
+  const storyInfo = storyLengthLabels[state.storyLength]
   const continuity = previousSession ? choiceContinuations[previousSession.storyChoice] : undefined
   const storyWordCount = activeStory.reduce(
     (total, paragraph) => total + paragraph.en.trim().split(/\s+/).length,
     0,
   )
+  const coverageCount = generated?.vocabularyCoverage.length ?? targetWords.length
   const playAll = () => {
     if (playing) {
       speechSynthesis.cancel()
       setPlaying(false)
     } else {
-      speak(activeStory.map((p) => p.en).join(' '), 0.72, state.accent)
+      speak(activeStory.map((paragraph) => paragraph.en).join(' '), 0.72, state.accent)
       setPlaying(true)
       setTimeout(() => setPlaying(false), storyInfo.minutes * 18000)
     }
@@ -70,11 +115,11 @@ export function Story({
       <div className="page centered-page">
         <div className="locked-card">
           <LockKeyhole />
-          <p className="eyebrow">今日故事尚未解锁</p>
-          <h1>先完成单词小测</h1>
-          <p>测试会帮助你巩固今天的目标词，再进入故事语境。</p>
+          <p className="eyebrow">{ui.storyLocked}</p>
+          <h1>{ui.finishQuiz}</h1>
+          <p>{ui.quizHelp}</p>
           <button className="primary" onClick={() => setPage('quiz')}>
-            开始测试 <ArrowRight />
+            {ui.startQuiz} <ArrowRight />
           </button>
         </div>
       </div>
@@ -84,11 +129,11 @@ export function Story({
       <header className="story-header">
         <button className="back-link" onClick={() => setPage('home')}>
           <ArrowLeft />
-          今日首页
+          {ui.todayHome}
         </button>
         <div>
-          <span>雾林中的观测站</span>
-          <small>第 4 天 · 第一章</small>
+          <span>{generated ? ui.aiStory : ui.localSeries}</span>
+          <small>{generated ? `Prompt v${generated.generation.promptVersion}` : ui.chapter}</small>
         </div>
         <div>
           <button
@@ -97,26 +142,26 @@ export function Story({
             onClick={() => setTranslation(!translation)}
           >
             <Languages />
-            中英对照
+            {ui.bilingual}
           </button>
           <button onClick={playAll}>
             {playing ? <Pause /> : <Headphones />}
-            {playing ? '暂停' : '朗读全文'}
+            {playing ? ui.pause : ui.readAll}
           </button>
         </div>
       </header>
       <article className="story-paper">
         <div className="chapter-label">
           <span>CHAPTER 01</span>
-          <i>DAY FOUR</i>
+          <i>{generated?.generation.status === 'FALLBACK' ? 'SAFE FALLBACK' : 'DAILY STORY'}</i>
         </div>
-        <h1>The Signal in the Forest</h1>
-        <p className="story-subtitle">森林里的信号</p>
+        <h1>{generated?.title ?? 'The Signal in the Forest'}</h1>
+        <p className="story-subtitle">{generated?.titleZh ?? ui.localTitleZh}</p>
         {continuity && (
           <div className="story-continuity">
             <RotateCcw />
             <div>
-              <span>昨日选择已继承</span>
+              <span>{ui.continuity}</span>
               <b>{continuity.title}</b>
               <p>{continuity.summary}</p>
             </div>
@@ -125,20 +170,24 @@ export function Story({
         <div className="story-meta">
           <span>
             <Sparkles />
-            今日 20 词已全部融入
+            {ui.today} {coverageCount} {ui.wordsIncluded}
           </span>
           <span>
-            {storyInfo.name} · {storyWordCount} 词 · 约 {storyInfo.minutes} 分钟阅读
+            {storyInfo.name} / {storyWordCount} {ui.words} / {ui.about} {storyInfo.minutes}{' '}
+            {ui.minutes}
           </span>
         </div>
         <div className="story-text">
-          {activeStory.map((p) => (
-            <div className="story-paragraph" key={p.en}>
-              <button aria-label="朗读本段英文" onClick={() => speak(p.en, 0.72, state.accent)}>
+          {activeStory.map((paragraph, index) => (
+            <div className="story-paragraph" key={`${index}-${paragraph.en}`}>
+              <button
+                aria-label={ui.readParagraph}
+                onClick={() => speak(paragraph.en, 0.72, state.accent)}
+              >
                 <Volume2 />
               </button>
-              <HighlightedStory paragraph={p.en} />
-              {translation && <small>{p.zh}</small>}
+              <HighlightedStory paragraph={paragraph.en} words={targetWords} />
+              {translation && <small>{paragraph.zh}</small>}
             </div>
           ))}
         </div>
@@ -146,42 +195,41 @@ export function Story({
           <div>
             <CheckCircle2 />
             <span>
-              <b>词汇覆盖验证通过</b>
-              <small>20 / 20 个今日目标词已出现 · 核心词汇覆盖率 96%</small>
+              <b>{ui.structuredReady}</b>
+              <small>
+                {coverageCount} / {targetWords.length} {ui.wordsIncluded} /{' '}
+                {generated ? generated.generation.model : ui.offlineStory}
+              </small>
             </span>
           </div>
-          <button onClick={() => notify('已显示全部高亮词')}>
-            查看词汇 <ChevronRight />
+          <button onClick={() => notify(ui.highlighted)}>
+            {ui.viewWords} <ChevronRight />
           </button>
         </div>
         <section className="choice-section">
           <div className="choice-title">
             <p className="eyebrow">YOUR CHOICE</p>
-            <h2>接下来，米娅应该怎么做？</h2>
-            <p>你的选择将成为明天故事的起点。</p>
+            <h2>{ui.nextAction}</h2>
+            <p>{ui.choiceFuture}</p>
           </div>
           <div className="story-choices">
-            {storyChoices.map((c) => (
+            {activeChoices.map((choice, index) => (
               <button
-                key={c.id}
-                className={state.storyChoice === c.id ? 'selected' : ''}
-                aria-pressed={state.storyChoice === c.id}
+                key={choice.id}
+                className={state.storyChoice === choice.id ? 'selected' : ''}
+                aria-pressed={state.storyChoice === choice.id}
                 onClick={() => {
-                  completeToday(c.id)
-                  notify(
-                    state.sessions[state.activeDate]
-                      ? '今日记录已更新，没有重复新增'
-                      : '今日学习记录已保存',
-                  )
+                  completeToday(choice.id)
+                  notify(state.sessions[state.activeDate] ? ui.recordUpdated : ui.recordSaved)
                 }}
               >
-                <span>{c.icon}</span>
+                <span>{['1', '2', '3'][index]}</span>
                 <div>
-                  <strong>{c.title}</strong>
-                  <small>{c.en}</small>
-                  <p>{c.hint}</p>
+                  <strong>{choice.title}</strong>
+                  <small>{choice.en}</small>
+                  <p>{choice.hint}</p>
                 </div>
-                {state.storyChoice === c.id ? <CheckCircle2 /> : <ArrowRight />}
+                {state.storyChoice === choice.id ? <CheckCircle2 /> : <ArrowRight />}
               </button>
             ))}
           </div>
@@ -189,10 +237,10 @@ export function Story({
             <div className="choice-confirm">
               <CheckCircle2 />
               <span>
-                <b>选择已保存</b>
-                <small>明天的故事将从这里继续。今天的学习记录已完成。</small>
+                <b>{ui.choiceSaved}</b>
+                <small>{ui.tomorrowContinues}</small>
               </span>
-              <button onClick={() => setPage('report')}>查看学习总结</button>
+              <button onClick={() => setPage('report')}>{ui.viewSummary}</button>
             </div>
           )}
         </section>
