@@ -1,4 +1,5 @@
 ﻿export type Word = {
+  id?: string
   word: string
   phonetic: string
   pos: string
@@ -9,6 +10,8 @@
   collocations: string[]
   level: string
   review?: boolean
+  sourceName?: string
+  sourceLicense?: string
 }
 
 export const todayWords: Word[] = [

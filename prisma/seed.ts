@@ -9,7 +9,7 @@ import {
   StorySeriesStatus,
   UserWordStatus,
 } from '../server/generated/prisma/enums.js'
-import { demoUser, vocabularySeed } from './seed-data.js'
+import { demoSessionVocabularySeed, demoUser, vocabularySeed } from './seed-data.js'
 
 const prisma = createPrismaClient()
 const sessionDate = new Date('2026-07-13T00:00:00.000Z')
@@ -24,14 +24,22 @@ async function seed() {
     create: demoUser,
   })
 
-  const words = []
+  const seededWords = new Map()
   for (const item of vocabularySeed) {
     const { isReview, ...wordData } = item
+    void isReview
     const word = await prisma.vocabulary.upsert({
       where: { word: item.word },
       update: wordData,
       create: wordData,
     })
+    seededWords.set(item.word, word)
+  }
+
+  const words = []
+  for (const item of demoSessionVocabularySeed) {
+    const word = seededWords.get(item.word)!
+    const isReview = item.isReview
     words.push({ word, isReview })
 
     await prisma.userWordState.upsert({
@@ -121,7 +129,10 @@ async function seed() {
       content:
         'Mia discovered an ancient map and followed a hidden path. A blue signal began to glow beyond the entrance.',
       summary: 'Mia follows a mysterious signal toward the hidden city.',
-      vocabularyCoverage: { covered: vocabularySeed.map((item) => item.word), total: 20 },
+      vocabularyCoverage: {
+        covered: demoSessionVocabularySeed.map((item) => item.word),
+        total: demoSessionVocabularySeed.length,
+      },
       stateBeforeJson: { location: 'forest edge' },
       stateAfterJson: { location: 'hidden entrance', clue: 'blue signal' },
     },
@@ -176,7 +187,9 @@ async function seed() {
     },
   })
 
-  console.log(`Seeded WordQuest demo data for ${user.email}: ${words.length} words`)
+  console.log(
+    `Seeded WordQuest demo data for ${user.email}: ${words.length} session words, ${vocabularySeed.length} catalog words`,
+  )
 }
 
 seed()

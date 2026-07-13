@@ -575,6 +575,223 @@
           }
         }
       }
+    },
+    "/api/v1/daily-session": {
+      "get": {
+        "summary": "Generate or read the adaptive daily vocabulary plan",
+        "tags": ["daily-session", "words"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "format": "date" },
+            "in": "query",
+            "name": "date",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["20+0", "15+5", "10+10", "dynamic"],
+              "default": "15+5"
+            },
+            "in": "query",
+            "name": "mix",
+            "required": false
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["sessionId", "date", "status", "newCount", "reviewCount", "words"],
+                  "properties": {
+                    "sessionId": { "type": "string" },
+                    "date": { "type": "string", "format": "date" },
+                    "status": { "type": "string" },
+                    "newCount": { "type": "integer" },
+                    "reviewCount": { "type": "integer" },
+                    "words": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "word",
+                          "phonetic",
+                          "pos",
+                          "meaning",
+                          "definition",
+                          "example",
+                          "level",
+                          "review",
+                          "sourceName",
+                          "sourceLicense"
+                        ],
+                        "properties": {
+                          "id": { "type": "string" },
+                          "word": { "type": "string" },
+                          "phonetic": { "type": "string" },
+                          "pos": { "type": "string" },
+                          "meaning": { "type": "string" },
+                          "definition": { "type": "string" },
+                          "example": { "type": "string" },
+                          "level": { "type": "string" },
+                          "review": { "type": "boolean" },
+                          "sourceName": { "type": "string" },
+                          "sourceLicense": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "timestamp", "path"],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message", "statusCode", "requestId"],
+                      "properties": {
+                        "code": { "type": "string" },
+                        "message": { "type": "string" },
+                        "statusCode": { "type": "integer" },
+                        "requestId": { "type": "string" },
+                        "details": {}
+                      }
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "path": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/words/{wordId}/review": {
+      "post": {
+        "summary": "Submit learning feedback and schedule the next review",
+        "tags": ["words"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["result"],
+                "properties": {
+                  "result": { "type": "string", "enum": ["KNOW", "FUZZY", "UNKNOWN"] },
+                  "quizCorrect": { "type": "boolean" },
+                  "pronunciationScore": { "type": "number", "minimum": 0, "maximum": 100 },
+                  "sessionId": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": { "type": "string", "format": "uuid" },
+            "in": "path",
+            "name": "wordId",
+            "required": true
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "wordId",
+                    "status",
+                    "memoryScore",
+                    "nextReviewAt",
+                    "reviewIntervalDays",
+                    "lapseCount"
+                  ],
+                  "properties": {
+                    "wordId": { "type": "string" },
+                    "status": { "type": "string" },
+                    "memoryScore": { "type": "number" },
+                    "nextReviewAt": {
+                      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+                    },
+                    "reviewIntervalDays": { "type": "integer" },
+                    "lapseCount": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "timestamp", "path"],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message", "statusCode", "requestId"],
+                      "properties": {
+                        "code": { "type": "string" },
+                        "message": { "type": "string" },
+                        "statusCode": { "type": "integer" },
+                        "requestId": { "type": "string" },
+                        "details": {}
+                      }
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "path": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "timestamp", "path"],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message", "statusCode", "requestId"],
+                      "properties": {
+                        "code": { "type": "string" },
+                        "message": { "type": "string" },
+                        "statusCode": { "type": "integer" },
+                        "requestId": { "type": "string" },
+                        "details": {}
+                      }
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "path": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "servers": [{ "url": "http://localhost:3001", "description": "development" }],

@@ -27,7 +27,7 @@
 
 ## 技术栈
 
-Frontend: React 19 + TypeScript + Vite + Lucide Icons. API: Fastify + TypeScript. Data layer: PostgreSQL 17 + Prisma 7 with the node-postgres driver adapter. Accounts and AI services are planned for subsequent roadmap stages.
+Frontend: React 19 + TypeScript + Vite + Lucide Icons. API: Fastify + TypeScript. Data layer: PostgreSQL 17 + Prisma 7 with the node-postgres driver adapter. Accounts, cross-device synchronization, and the adaptive vocabulary engine are implemented; dynamic LLM story generation is the next roadmap stage.
 
 ## 本地运行
 
@@ -185,4 +185,24 @@ PUT  /api/v1/sync/state
 GET  /api/v1/sync/conflicts
 ```
 
-Set `VITE_API_BASE_URL` when the frontend cannot reach the API at its default `http://localhost:3001`. The next roadmap branch is `feature/vocabulary-engine`.
+Set `VITE_API_BASE_URL` when the frontend cannot reach the API at its default `http://localhost:3001`. The next roadmap branch is `feature/llm-story-service`.
+
+## Adaptive vocabulary engine
+
+The `feature/vocabulary-engine` stage adds a server-backed daily learning plan while preserving the original 20-word local flow as an anonymous/offline fallback.
+
+- The seed catalog contains 56 unique curated starter words with `sourceName`, `sourceLicense`, and collection metadata. These fields are ready for future licensed high-frequency, CET, or IELTS imports.
+- Authenticated learners receive an idempotent 20-word plan for each calendar date.
+- Supported mixes are `20+0`, `15+5`, `10+10`, and `dynamic`. When too few reviews are due, remaining slots are filled with unseen words rather than mislabeling new words as reviews.
+- Review scheduling uses a simplified SM-2 model with ease factor, interval, lapse count, memory score, and next-review time.
+- Review priority combines overdue time, memory weakness, pronunciation weakness, spelling weakness, listening weakness, and lapse count.
+- The React app loads the authenticated plan automatically, stores it in the versioned local snapshot, and submits `KNOW`, `FUZZY`, or `UNKNOWN` feedback without blocking card navigation.
+
+Vocabulary endpoints:
+
+```text
+GET  /api/v1/daily-session?date=YYYY-MM-DD&mix=dynamic
+POST /api/v1/words/:wordId/review
+```
+
+Both endpoints require the bearer token returned by the account API. The daily-session endpoint returns word source/license metadata and reuses an existing session for the same user and date.

@@ -41,7 +41,10 @@ export function getQuizScore(answers: Record<number, string>) {
   return correct * 20
 }
 
-export function getReviewCount(state: Pick<AppState, 'wordMix' | 'learned'>) {
+type LearningState = Pick<AppState, 'wordMix' | 'learned' | 'activeDate' | 'dailyWordPlan'>
+
+export function getReviewCount(state: LearningState) {
+  if (state.dailyWordPlan?.date === state.activeDate) return state.dailyWordPlan.reviewCount
   if (state.wordMix === '20+0') return 0
   if (state.wordMix === '10+10') return 10
   if (state.wordMix === 'dynamic') {
@@ -53,7 +56,8 @@ export function getReviewCount(state: Pick<AppState, 'wordMix' | 'learned'>) {
   return 5
 }
 
-export function getSessionWords(state: Pick<AppState, 'wordMix' | 'learned'>): Word[] {
+export function getSessionWords(state: LearningState): Word[] {
+  if (state.dailyWordPlan?.date === state.activeDate) return state.dailyWordPlan.words
   const reviewCount = getReviewCount(state)
   const priority = [
     ...todayWords.filter((word) => word.review),

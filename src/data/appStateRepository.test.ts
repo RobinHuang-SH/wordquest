@@ -61,6 +61,15 @@ describe('state migrations', () => {
     })
   })
 
+  it('adds the adaptive daily plan default when migrating a version 3 snapshot', () => {
+    const migrated = migrateAppState({
+      version: 3,
+      state: { displayName: 'Ava', activeDate: '2026-07-12' },
+    })
+
+    expect(migrated.dailyWordPlan).toBeNull()
+  })
+
   it('converts a legacy completed day into a session', () => {
     const migrated = migrateAppState({
       onboarded: true,
@@ -94,6 +103,7 @@ describe('state migrations', () => {
     expect(migrated.activeDate).toBe('2026-07-12')
     expect(migrated.learned).toEqual({})
     expect(migrated.quizDone).toBe(false)
+    expect(migrated.dailyWordPlan).toBeNull()
     expect(migrated.sessions['2026-07-11']).toEqual(session)
   })
 })
