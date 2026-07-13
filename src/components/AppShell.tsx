@@ -1,35 +1,14 @@
+import type { LucideIcon } from 'lucide-react'
 import {
-  ArrowLeft,
-  ArrowRight,
   BarChart3,
-  BookMarked,
   BookOpen,
-  CalendarDays,
-  Check,
-  CheckCircle2,
-  ChevronRight,
-  CircleHelp,
-  Cloud,
-  Download,
   Flame,
-  Headphones,
   Home,
-  Languages,
   Library,
-  LockKeyhole,
   Menu,
-  Mic,
-  Moon,
   MoreHorizontal,
-  Pause,
-  Play,
-  RotateCcw,
-  Search,
   Settings,
   Sparkles,
-  Star,
-  Trophy,
-  Volume2,
   WandSparkles,
   X,
 } from 'lucide-react'
@@ -37,8 +16,8 @@ import type { AppState, Page } from '../domain/models'
 
 export function Logo() {
   return (
-    <div className="logo">
-      <div className="logo-mark">
+    <div className="logo" aria-label="词境英语 WordQuest">
+      <div className="logo-mark" aria-hidden="true">
         <BookOpen size={22} />
         <Sparkles size={12} />
       </div>
@@ -50,12 +29,12 @@ export function Logo() {
   )
 }
 
-const navItems: { id: Page; label: string; icon: any }[] = [
-  { id: 'home', label: '今日', icon: Home },
-  { id: 'learn', label: '学习', icon: BookOpen },
-  { id: 'story', label: '故事', icon: WandSparkles },
-  { id: 'library', label: '词库', icon: Library },
-  { id: 'report', label: '周报', icon: BarChart3 },
+const navItems: { id: Page; label: string; icon: LucideIcon; shortcut: string }[] = [
+  { id: 'home', label: '今日', icon: Home, shortcut: 'Alt+1' },
+  { id: 'learn', label: '学习', icon: BookOpen, shortcut: 'Alt+2' },
+  { id: 'story', label: '故事', icon: WandSparkles, shortcut: 'Alt+3' },
+  { id: 'library', label: '词库', icon: Library, shortcut: 'Alt+4' },
+  { id: 'report', label: '周报', icon: BarChart3, shortcut: 'Alt+5' },
 ]
 
 export function Sidebar({
@@ -68,20 +47,30 @@ export function Sidebar({
   state: AppState
 }) {
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" aria-label="应用侧边栏">
       <Logo />
-      <nav>
-        {navItems.map(({ id, label, icon: Icon }) => (
-          <button key={id} className={page === id ? 'active' : ''} onClick={() => setPage(id)}>
-            <Icon size={20} />
+      <nav aria-label="主要导航">
+        {navItems.map(({ id, label, icon: Icon, shortcut }) => (
+          <button
+            key={id}
+            className={page === id ? 'active' : ''}
+            aria-current={page === id ? 'page' : undefined}
+            aria-keyshortcuts={shortcut}
+            onClick={() => setPage(id)}
+          >
+            <Icon size={20} aria-hidden="true" />
             <span>{label}</span>
-            {id === 'learn' && <b>{Object.keys(state.learned).length}/20</b>}
+            {id === 'learn' && (
+              <b aria-label={`已学习 ${Object.keys(state.learned).length} 个，共 20 个`}>
+                {Object.keys(state.learned).length}/20
+              </b>
+            )}
           </button>
         ))}
       </nav>
       <div className="sidebar-bottom">
-        <div className="streak-card">
-          <Flame size={22} />
+        <div className="streak-card" aria-label={`连续学习 ${state.streak} 天`}>
+          <Flame size={22} aria-hidden="true" />
           <div>
             <strong>{state.streak} 天</strong>
             <span>连续学习</span>
@@ -89,20 +78,24 @@ export function Sidebar({
         </div>
         <button
           className={`settings-link ${page === 'settings' ? 'active' : ''}`}
+          aria-current={page === 'settings' ? 'page' : undefined}
+          aria-keyshortcuts="Alt+6"
           onClick={() => setPage('settings')}
         >
-          <Settings size={20} />
+          <Settings size={20} aria-hidden="true" />
           设置
         </button>
         <div className="profile">
-          <div className="avatar">{state.displayName.trim().charAt(0).toUpperCase() || 'W'}</div>
+          <div className="avatar" aria-hidden="true">
+            {state.displayName.trim().charAt(0).toUpperCase() || 'W'}
+          </div>
           <div>
             <strong>{state.displayName || '学习者'}</strong>
             <span>
               {state.level} · {state.accent}发音
             </span>
           </div>
-          <MoreHorizontal size={18} />
+          <MoreHorizontal size={18} aria-hidden="true" />
         </div>
       </div>
     </aside>
@@ -120,23 +113,36 @@ export function MobileHeader({
 }) {
   return (
     <header className="mobile-header">
-      <button onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button>
+      <button
+        aria-label={menuOpen ? '关闭导航菜单' : '打开导航菜单'}
+        aria-expanded={menuOpen}
+        aria-controls="mobile-navigation"
+        onClick={() => setMenuOpen(!menuOpen)}
+      >
+        {menuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+      </button>
       <Logo />
-      <button onClick={() => setPage('settings')}>
-        <Settings />
+      <button aria-label="打开设置" onClick={() => setPage('settings')}>
+        <Settings aria-hidden="true" />
       </button>
     </header>
   )
 }
+
 export function MobileMenu({ page, setPage }: { page: Page; setPage: (p: Page) => void }) {
   return (
-    <div className="mobile-menu">
+    <nav id="mobile-navigation" className="mobile-menu" aria-label="移动端主要导航">
       {navItems.map(({ id, label, icon: Icon }) => (
-        <button key={id} className={page === id ? 'active' : ''} onClick={() => setPage(id)}>
-          <Icon size={19} />
+        <button
+          key={id}
+          className={page === id ? 'active' : ''}
+          aria-current={page === id ? 'page' : undefined}
+          onClick={() => setPage(id)}
+        >
+          <Icon size={19} aria-hidden="true" />
           {label}
         </button>
       ))}
-    </div>
+    </nav>
   )
 }

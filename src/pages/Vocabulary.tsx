@@ -67,6 +67,7 @@ export function Vocabulary({ state }: { state: AppState }) {
           <div className="search-box">
             <Search />
             <input
+              aria-label="搜索单词或释义"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="搜索单词或释义…"
@@ -74,25 +75,30 @@ export function Vocabulary({ state }: { state: AppState }) {
           </div>
           <div className="filters">
             {['全部', '已学习', '待复习'].map((f) => (
-              <button className={filter === f ? 'active' : ''} onClick={() => setFilter(f)} key={f}>
+              <button
+                className={filter === f ? 'active' : ''}
+                aria-pressed={filter === f}
+                onClick={() => setFilter(f)}
+                key={f}
+              >
                 {f}
               </button>
             ))}
           </div>
         </div>
-        <div className="word-table">
-          <div className="table-head">
-            <span>单词</span>
-            <span>释义</span>
-            <span>状态</span>
-            <span>掌握度</span>
-            <span>最近学习</span>
-            <span />
+        <div className="word-table" role="table" aria-label="个人词库">
+          <div className="table-head" role="row">
+            <span role="columnheader">单词</span>
+            <span role="columnheader">释义</span>
+            <span role="columnheader">状态</span>
+            <span role="columnheader">掌握度</span>
+            <span role="columnheader">最近学习</span>
+            <span role="columnheader" aria-label="操作" />
           </div>
           {rows.map((w, i) => (
-            <div className="table-row" key={w.word}>
-              <span>
-                <button onClick={() => speak(w.word)}>
+            <div className="table-row" role="row" key={w.word}>
+              <span role="cell">
+                <button aria-label={`朗读 ${w.word}`} onClick={() => speak(w.word)}>
                   <Volume2 />
                 </button>
                 <b>{w.word}</b>
@@ -100,23 +106,23 @@ export function Vocabulary({ state }: { state: AppState }) {
                   {w.phonetic} · {w.pos}
                 </small>
               </span>
-              <span>{w.meaning}</span>
-              <span>
+              <span role="cell">{w.meaning}</span>
+              <span role="cell">
                 <em
                   className={state.learned[w.word] ? 'mastered' : w.review ? 'review' : 'learning'}
                 >
                   {state.learned[w.word] ? '今日已学' : w.review ? '待复习' : '学习中'}
                 </em>
               </span>
-              <span>
+              <span role="cell">
                 <i className="score-bar">
                   <i style={{ width: `${state.learned[w.word] ? 75 + (i % 3) * 7 : 30}%` }} />
                 </i>
                 {state.learned[w.word] ? 75 + (i % 3) * 7 : 30}%
               </span>
-              <span>今天</span>
-              <span>
-                <ChevronRight />
+              <span role="cell">今天</span>
+              <span role="cell">
+                <ChevronRight aria-hidden="true" />
               </span>
             </div>
           ))}

@@ -94,13 +94,20 @@ export function Learn({
         </button>
         <div className="lesson-progress">
           <span>单词学习</span>
-          <div className="progress-track">
+          <div
+            className="progress-track"
+            role="progressbar"
+            aria-label="单词学习进度"
+            aria-valuemin={1}
+            aria-valuemax={20}
+            aria-valuenow={index + 1}
+          >
             <i style={{ width: `${((index + 1) / 20) * 100}%` }} />
           </div>
           <b>{index + 1} / 20</b>
         </div>
-        <button className="icon-btn">
-          <MoreHorizontal />
+        <button className="icon-btn" aria-label="更多学习选项">
+          <MoreHorizontal aria-hidden="true" />
         </button>
       </header>
       <div className="learn-layout">
@@ -110,6 +117,8 @@ export function Learn({
             <button
               key={w.word}
               className={`${i === index ? 'current' : ''} ${state.learned[w.word] ? 'done' : ''}`}
+              aria-current={i === index ? 'step' : undefined}
+              aria-label={`${i + 1}. ${w.word}${w.review ? '，复习词' : ''}${state.learned[w.word] ? '，已学习' : ''}`}
               onClick={() => patch({ currentWord: i })}
             >
               <span>{state.learned[w.word] ? <Check /> : i + 1}</span>
@@ -128,7 +137,7 @@ export function Learn({
                   复习词
                 </span>
               )}
-              <button onClick={() => notify('已加入收藏')}>
+              <button aria-label={`收藏单词 ${word.word}`} onClick={() => notify('已加入收藏')}>
                 <Star />
               </button>
             </div>
@@ -144,11 +153,16 @@ export function Learn({
                 <Play /> 慢速
               </button>
             </div>
-            <button className="meaning-toggle" onClick={() => setShowMeaning(!showMeaning)}>
+            <button
+              className="meaning-toggle"
+              aria-expanded={showMeaning}
+              aria-controls="word-meaning"
+              onClick={() => setShowMeaning(!showMeaning)}
+            >
               <Languages /> {showMeaning ? '隐藏释义' : '显示释义'}
             </button>
             {showMeaning && (
-              <div className="meaning-block">
+              <div id="word-meaning" className="meaning-block">
                 <h2>{word.meaning}</h2>
                 <p>{word.definition}</p>
               </div>
@@ -157,8 +171,11 @@ export function Learn({
               <span>EXAMPLE</span>
               <p>
                 “{word.example}”{' '}
-                <button onClick={() => speak(word.example, 0.78, state.accent)}>
-                  <Volume2 />
+                <button
+                  aria-label={`朗读例句：${word.example}`}
+                  onClick={() => speak(word.example, 0.78, state.accent)}
+                >
+                  <Volume2 aria-hidden="true" />
                 </button>
               </p>
               <small>{word.exampleZh}</small>

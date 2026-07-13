@@ -8,7 +8,7 @@ import {
 
 const STORAGE_KEY = 'wordquest-state'
 const BACKUP_KEY = 'wordquest-state-backup'
-export const APP_STATE_SCHEMA_VERSION = 2
+export const APP_STATE_SCHEMA_VERSION = 3
 
 type PersistedEnvelope = { version: number; state: Partial<AppState> }
 type Migration = (state: Partial<AppState>) => Partial<AppState>
@@ -16,6 +16,11 @@ type Migration = (state: Partial<AppState>) => Partial<AppState>
 const migrations: Record<number, Migration> = {
   0: (state) => ({ ...state }),
   1: (state) => ({ ...state, sessions: state.sessions || {} }),
+  2: (state) => ({
+    ...state,
+    highContrast: state.highContrast ?? false,
+    reducedMotion: state.reducedMotion ?? false,
+  }),
 }
 
 function unwrapPersistedState(raw: unknown): PersistedEnvelope {

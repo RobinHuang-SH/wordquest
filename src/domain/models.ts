@@ -52,6 +52,8 @@ export type AppState = User & {
   wordMix: WordMix
   storyLength: StoryLength
   dailyMinutes: DailyMinutes
+  highContrast: boolean
+  reducedMotion: boolean
   activeDate: string
   sessions: Record<string, DailySession>
 }

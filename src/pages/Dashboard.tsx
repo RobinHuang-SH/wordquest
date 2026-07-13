@@ -19,7 +19,6 @@ import {
   LockKeyhole,
   Menu,
   Mic,
-  Moon,
   MoreHorizontal,
   Pause,
   Play,
@@ -72,9 +71,6 @@ export function Dashboard({
           </h1>
           <p>今天的森林里，似乎有一道新的光。</p>
         </div>
-        <button className="icon-btn" title="切换深色模式">
-          <Moon size={20} />
-        </button>
       </header>
       <section className="hero-card">
         <div className="hero-copy">
@@ -96,7 +92,14 @@ export function Dashboard({
               <span>今日进度</span>
               <strong>{learnedCount} / 20</strong>
             </div>
-            <div className="progress-track">
+            <div
+              className="progress-track"
+              role="progressbar"
+              aria-label="今日学习进度"
+              aria-valuemin={0}
+              aria-valuemax={20}
+              aria-valuenow={learnedCount}
+            >
               <i style={{ width: `${pct}%` }} />
             </div>
           </div>

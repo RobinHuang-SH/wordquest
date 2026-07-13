@@ -42,6 +42,8 @@ export const createInitialState = (): AppState => ({
   wordMix: '15+5',
   storyLength: 'medium',
   dailyMinutes: 20,
+  highContrast: false,
+  reducedMotion: false,
   activeDate: '',
   sessions: {},
 })
