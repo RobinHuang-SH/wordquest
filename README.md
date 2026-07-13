@@ -23,10 +23,11 @@
 - Vitest 单元/组件测试、Playwright 关键流程测试、ESLint、Prettier 与 CI
 - Fastify + TypeScript API foundation with validated environment configuration
 - OpenAPI 3.1, Swagger UI, health checks, structured logs, and unified errors
+- PostgreSQL 17 + Prisma 7 schema, migrations, generated client, and idempotent seed data
 
 ## 技术栈
 
-Frontend: React 19 + TypeScript + Vite + Lucide Icons. API foundation: Fastify + TypeScript. Database, accounts, and AI services are planned for subsequent roadmap stages.
+Frontend: React 19 + TypeScript + Vite + Lucide Icons. API: Fastify + TypeScript. Data layer: PostgreSQL 17 + Prisma 7 with the node-postgres driver adapter. Accounts and AI services are planned for subsequent roadmap stages.
 
 ## 本地运行
 
@@ -59,11 +60,38 @@ The API defaults to `http://localhost:3001` and provides:
 
 Fastify writes structured request logs and redacts authorization and cookie headers. Unified error responses include a code, message, HTTP status, request ID, timestamp, and request path.
 
+## PostgreSQL and Prisma
+
+Start the local PostgreSQL service, apply migrations, and load the idempotent demo dataset:
+
+```powershell
+docker compose up -d postgres
+pnpm db:migrate:deploy
+pnpm db:seed
+```
+
+The seed creates one demo learner, the 20-word daily set, word states, a completed session, an interactive story node with three choices, and a weekly report. Running `pnpm db:seed` repeatedly does not duplicate records.
+
+Core commands:
+
+```powershell
+pnpm db:validate
+pnpm db:generate
+pnpm db:migrate
+pnpm db:migrate:deploy
+pnpm db:seed
+pnpm db:studio
+pnpm db:down
+```
+
+The Prisma schema implements the PRD entities `users`, `vocabulary`, `user_word_state`, `daily_sessions`, `daily_session_words`, `story_series`, `story_nodes`, `story_choices`, `pronunciation_attempts`, and `weekly_reports`. Generated Prisma Client files are build artifacts and are not committed.
+
 ## 质量检查
 
 ```powershell
 pnpm lint
 pnpm format:check
+pnpm db:validate
 pnpm test
 pnpm test:api
 pnpm test:e2e
@@ -112,6 +140,8 @@ pnpm preview
 - `src/App.tsx`：只负责状态装配、页面切换和应用级交互
 - `server`: Fastify application, configuration, system routes, errors, and API tests
 - `openapi`: generated OpenAPI 3.1 document tracked in version control
+- `prisma`: data model, migrations, seed dataset, and schema tests
+- `compose.yaml`: local PostgreSQL 17 development service
 
 localStorage 当前使用带 `version` 的数据信封；旧版直接保存的状态会在加载时自动迁移。
 
@@ -128,5 +158,5 @@ localStorage 当前使用带 `version` 的数据信封；旧版直接保存的�
 项目的逐步完善计划见 `ROADMAP.md`。采用“一项优化一个分支”。已完成可编辑名字、学习偏好联动、多日学习记录、领域数据层拆分、自动化质量基础、离线 PWA 和无障碍优化，下一阶段分支为：
 
 ```text
-feature/postgres-schema
+feature/auth-sync
 ```

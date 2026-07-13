@@ -1,0 +1,280 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../server/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EnglishLevel {
+  A1
+  A2
+  B1
+  B2
+  C1
+  C2
+}
+
+enum PreferredAccent {
+  US
+  UK
+}
+
+enum UserWordStatus {
+  NEW
+  LEARNING
+  REVIEW
+  MASTERED
+}
+
+enum SessionStatus {
+  GENERATED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum SessionWordType {
+  NEW
+  REVIEW
+}
+
+enum LearningResult {
+  KNOW
+  FUZZY
+  UNKNOWN
+}
+
+enum QuizResult {
+  CORRECT
+  INCORRECT
+  SKIPPED
+}
+
+enum StorySeriesStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum ObsidianSyncStatus {
+  NOT_CONFIGURED
+  PENDING
+  SYNCED
+  FAILED
+}
+
+model User {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  email                 String                 @unique @db.VarChar(320)
+  displayName           String                 @map("display_name") @db.VarChar(100)
+  nativeLanguage        String                 @default("zh-CN") @map("native_language") @db.VarChar(20)
+  englishLevel          EnglishLevel           @default(A2) @map("english_level")
+  targetLevel           EnglishLevel           @default(B1) @map("target_level")
+  preferredAccent       PreferredAccent        @default(US) @map("preferred_accent")
+  dailyWordCount        Int                    @default(20) @map("daily_word_count")
+  newWordRatio          Float                  @default(0.75) @map("new_word_ratio")
+  storyGenre            String                 @default("adventure") @map("story_genre") @db.VarChar(50)
+  timezone              String                 @default("Asia/Shanghai") @db.VarChar(64)
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  wordStates            UserWordState[]
+  dailySessions         DailySession[]
+  storySeries           StorySeries[]
+  pronunciationAttempts PronunciationAttempt[]
+  weeklyReports         WeeklyReport[]
+
+  @@map("users")
+}
+
+model Vocabulary {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  word                  String                 @unique @db.VarChar(100)
+  lemma                 String                 @db.VarChar(100)
+  partOfSpeech          String                 @map("part_of_speech") @db.VarChar(30)
+  level                 EnglishLevel
+  meaningZh             String                 @map("meaning_zh") @db.Text
+  definitionEn          String                 @map("definition_en") @db.Text
+  phoneticUs            String?                @map("phonetic_us") @db.VarChar(100)
+  phoneticUk            String?                @map("phonetic_uk") @db.VarChar(100)
+  frequencyRank         Int?                   @map("frequency_rank")
+  exampleSentence       String                 @map("example_sentence") @db.Text
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  userStates            UserWordState[]
+  sessionWords          DailySessionWord[]
+  pronunciationAttempts PronunciationAttempt[]
+
+  @@index([lemma])
+  @@index([level, frequencyRank])
+  @@map("vocabulary")
+}
+
+model UserWordState {
+  id                 String         @id @default(uuid()) @db.Uuid
+  userId             String         @map("user_id") @db.Uuid
+  wordId             String         @map("word_id") @db.Uuid
+  status             UserWordStatus @default(NEW)
+  memoryScore        Float          @default(0) @map("memory_score")
+  pronunciationScore Float          @default(0) @map("pronunciation_score")
+  spellingScore      Float          @default(0) @map("spelling_score")
+  listeningScore     Float          @default(0) @map("listening_score")
+  timesSeen          Int            @default(0) @map("times_seen")
+  timesCorrect       Int            @default(0) @map("times_correct")
+  lastReviewedAt     DateTime?      @map("last_reviewed_at") @db.Timestamptz(3)
+  nextReviewAt       DateTime?      @map("next_review_at") @db.Timestamptz(3)
+  isDifficult        Boolean        @default(false) @map("is_difficult")
+  isFavorite         Boolean        @default(false) @map("is_favorite")
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word               Vocabulary     @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, wordId])
+  @@index([userId, status, nextReviewAt])
+  @@map("user_word_state")
+}
+
+model DailySession {
+  id                 String             @id @default(uuid()) @db.Uuid
+  userId             String             @map("user_id") @db.Uuid
+  sessionDate        DateTime           @map("session_date") @db.Date
+  status             SessionStatus      @default(GENERATED)
+  newWordCount       Int                @default(15) @map("new_word_count")
+  reviewWordCount    Int                @default(5) @map("review_word_count")
+  quizScore          Float?             @map("quiz_score")
+  pronunciationScore Float?             @map("pronunciation_score")
+  storyId            String?            @unique @map("story_id") @db.Uuid
+  completedAt        DateTime?          @map("completed_at") @db.Timestamptz(3)
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  story              StoryNode?         @relation("SelectedSessionStory", fields: [storyId], references: [id], onDelete: SetNull)
+  words              DailySessionWord[]
+  storyNodes         StoryNode[]        @relation("SessionStoryNodes")
+
+  @@unique([userId, sessionDate])
+  @@index([userId, status, sessionDate])
+  @@map("daily_sessions")
+}
+
+model DailySessionWord {
+  id                 String          @id @default(uuid()) @db.Uuid
+  sessionId          String          @map("session_id") @db.Uuid
+  wordId             String          @map("word_id") @db.Uuid
+  wordType           SessionWordType @map("word_type")
+  learningResult     LearningResult? @map("learning_result")
+  quizResult         QuizResult?     @map("quiz_result")
+  pronunciationScore Float?          @map("pronunciation_score")
+  sequence           Int
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  session            DailySession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  word               Vocabulary      @relation(fields: [wordId], references: [id], onDelete: Restrict)
+
+  @@unique([sessionId, wordId])
+  @@unique([sessionId, sequence])
+  @@index([wordId])
+  @@map("daily_session_words")
+}
+
+model StorySeries {
+  id             String            @id @default(uuid()) @db.Uuid
+  userId         String            @map("user_id") @db.Uuid
+  title          String            @db.VarChar(200)
+  genre          String            @db.VarChar(50)
+  level          EnglishLevel
+  storyBibleJson Json              @default("{}") @map("story_bible_json")
+  currentWeek    Int               @default(1) @map("current_week")
+  currentChapter Int               @default(1) @map("current_chapter")
+  status         StorySeriesStatus @default(ACTIVE)
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodes          StoryNode[]
+
+  @@unique([userId, title])
+  @@index([userId, status])
+  @@map("story_series")
+}
+
+model StoryNode {
+  id                 String        @id @default(uuid()) @db.Uuid
+  storySeriesId      String        @map("story_series_id") @db.Uuid
+  sessionId          String        @map("session_id") @db.Uuid
+  parentNodeId       String?       @map("parent_node_id") @db.Uuid
+  title              String?       @db.VarChar(200)
+  content            String        @db.Text
+  summary            String        @db.Text
+  vocabularyCoverage Json          @default("{}") @map("vocabulary_coverage")
+  selectedChoiceId   String?       @unique @map("selected_choice_id") @db.Uuid
+  stateBeforeJson    Json          @default("{}") @map("state_before_json")
+  stateAfterJson     Json          @default("{}") @map("state_after_json")
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  storySeries        StorySeries   @relation(fields: [storySeriesId], references: [id], onDelete: Cascade)
+  session            DailySession  @relation("SessionStoryNodes", fields: [sessionId], references: [id], onDelete: Cascade)
+  parent             StoryNode?    @relation("StoryTree", fields: [parentNodeId], references: [id], onDelete: SetNull)
+  children           StoryNode[]   @relation("StoryTree")
+  choices            StoryChoice[] @relation("NodeChoices")
+  selectedChoice     StoryChoice?  @relation("SelectedStoryChoice", fields: [selectedChoiceId], references: [id], onDelete: SetNull)
+  selectedForSession DailySession? @relation("SelectedSessionStory")
+
+  @@index([storySeriesId, createdAt])
+  @@index([sessionId])
+  @@index([parentNodeId])
+  @@map("story_nodes")
+}
+
+model StoryChoice {
+  id             String     @id @default(uuid()) @db.Uuid
+  storyNodeId    String     @map("story_node_id") @db.Uuid
+  choiceText     String     @map("choice_text") @db.Text
+  choiceSummary  String     @map("choice_summary") @db.Text
+  isSelected     Boolean    @default(false) @map("is_selected")
+  sequence       Int
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  storyNode      StoryNode  @relation("NodeChoices", fields: [storyNodeId], references: [id], onDelete: Cascade)
+  selectedByNode StoryNode? @relation("SelectedStoryChoice")
+
+  @@unique([storyNodeId, sequence])
+  @@index([storyNodeId, isSelected])
+  @@map("story_choices")
+}
+
+model PronunciationAttempt {
+  id                String     @id @default(uuid()) @db.Uuid
+  userId            String     @map("user_id") @db.Uuid
+  wordId            String     @map("word_id") @db.Uuid
+  audioUrl          String?    @map("audio_url") @db.Text
+  accuracyScore     Float      @map("accuracy_score")
+  fluencyScore      Float      @map("fluency_score")
+  completenessScore Float      @map("completeness_score")
+  prosodyScore      Float?     @map("prosody_score")
+  feedbackJson      Json       @default("{}") @map("feedback_json")
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word              Vocabulary @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@index([userId, wordId, createdAt])
+  @@map("pronunciation_attempts")
+}
+
+model WeeklyReport {
+  id                 String             @id @default(uuid()) @db.Uuid
+  userId             String             @map("user_id") @db.Uuid
+  weekStart          DateTime           @map("week_start") @db.Date
+  weekEnd            DateTime           @map("week_end") @db.Date
+  statisticsJson     Json               @default("{}") @map("statistics_json")
+  weeklyStory        String             @map("weekly_story") @db.Text
+  reviewSuggestions  String             @map("review_suggestions") @db.Text
+  obsidianSyncStatus ObsidianSyncStatus @default(NOT_CONFIGURED) @map("obsidian_sync_status")
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+  @@index([userId, weekEnd])
+  @@map("weekly_reports")
+}

@@ -85,13 +85,13 @@ main（稳定可运行）
 - OpenAPI 接口文档
 - 健康检查、日志和统一错误结构
 
-### 2.2 `feature/postgres-schema`（下一阶段）
+### 2.2 `feature/postgres-schema`（已完成）
 
 - PostgreSQL + Prisma
 - 落地 PRD 中 users、vocabulary、user_word_state、daily_sessions、story_series 等表
 - Migration 与种子数据
 
-### 2.3 `feature/auth-sync`
+### 2.3 `feature/auth-sync`（下一阶段）
 
 - 邮箱登录或第三方登录
 - 本地数据迁移到用户账户

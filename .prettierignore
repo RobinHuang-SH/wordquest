@@ -6,3 +6,5 @@ coverage
 pnpm-lock.yaml
 public/sw.js
 *.tsbuildinfo
+
+server/generated/prisma/
