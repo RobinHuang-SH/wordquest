@@ -21,19 +21,43 @@
 - 键盘快捷键、跳转主内容、清晰焦点、高对比度与减少动态效果
 - 语义化导航、进度条、弹窗和状态播报，覆盖屏幕阅读器关键流程
 - Vitest 单元/组件测试、Playwright 关键流程测试、ESLint、Prettier 与 CI
+- Fastify + TypeScript API foundation with validated environment configuration
+- OpenAPI 3.1, Swagger UI, health checks, structured logs, and unified errors
 
 ## 技术栈
 
-React 19 + TypeScript + Vite + Lucide Icons。当前 MVP 为本地优先前端版本，不需要数据库或 API Key。
+Frontend: React 19 + TypeScript + Vite + Lucide Icons. API foundation: Fastify + TypeScript. Database, accounts, and AI services are planned for subsequent roadmap stages.
 
 ## 本地运行
 
+Install dependencies and start the frontend:
+
 ```powershell
 pnpm install
-pnpm dev
+pnpm dev:web
+```
+
+Start the API in a second terminal:
+
+```powershell
+Copy-Item .env.example .env
+pnpm dev:api
 ```
 
 浏览器访问 `http://localhost:5173/`。
+
+## API Foundation
+
+The API defaults to `http://localhost:3001` and provides:
+
+- `GET /health`: service version, environment, uptime, and health status.
+- `GET /api/v1`: API version and planned PRD resource groups.
+- `GET /docs`: interactive Swagger UI.
+- `GET /docs/json`: runtime OpenAPI JSON.
+- `pnpm api:openapi`: generate `openapi/wordquest-api.json`.
+- `.env.example`: validated API configuration template.
+
+Fastify writes structured request logs and redacts authorization and cookie headers. Unified error responses include a code, message, HTTP status, request ID, timestamp, and request path.
 
 ## 质量检查
 
@@ -41,8 +65,10 @@ pnpm dev
 pnpm lint
 pnpm format:check
 pnpm test
+pnpm test:api
 pnpm test:e2e
 pnpm build
+pnpm api:openapi
 ```
 
 单元测试覆盖选词、计分、Session、数据迁移与备份恢复、故事词汇覆盖、PWA 状态组件和 Markdown 导出；Playwright 覆盖改名持久化、同日故事记录更新、移动端横向溢出、生产应用离线重载、安装引导，以及键盘导航和无障碍偏好。
@@ -84,6 +110,8 @@ pnpm preview
 - `src/components`：应用外壳和共享导航组件
 - `src/pages`：按功能拆分的页面组件
 - `src/App.tsx`：只负责状态装配、页面切换和应用级交互
+- `server`: Fastify application, configuration, system routes, errors, and API tests
+- `openapi`: generated OpenAPI 3.1 document tracked in version control
 
 localStorage 当前使用带 `version` 的数据信封；旧版直接保存的状态会在加载时自动迁移。
 
@@ -100,5 +128,5 @@ localStorage 当前使用带 `version` 的数据信封；旧版直接保存的�
 项目的逐步完善计划见 `ROADMAP.md`。采用“一项优化一个分支”。已完成可编辑名字、学习偏好联动、多日学习记录、领域数据层拆分、自动化质量基础、离线 PWA 和无障碍优化，下一阶段分支为：
 
 ```text
-feature/api-foundation
+feature/postgres-schema
 ```
