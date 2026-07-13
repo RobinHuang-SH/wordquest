@@ -79,6 +79,19 @@ describe('state migrations', () => {
     expect(migrated.dailyStory).toBeNull()
   })
 
+  it('clears a pre-validation cached story when migrating a version 5 snapshot', () => {
+    const migrated = migrateAppState({
+      version: 5,
+      state: {
+        displayName: 'Ava',
+        activeDate: '2026-07-12',
+        dailyStory: { sessionId: 'legacy-story' } as never,
+      },
+    })
+
+    expect(migrated.dailyStory).toBeNull()
+  })
+
   it('converts a legacy completed day into a session', () => {
     const migrated = migrateAppState({
       onboarded: true,

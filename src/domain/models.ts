@@ -52,11 +52,33 @@ export type DailyStory = {
   stateBefore: Record<string, unknown>
   stateAfter: Record<string, unknown>
   vocabularyCoverage: string[]
+  validation: {
+    passed: boolean
+    targetWords: { total: number; covered: string[]; missing: string[] }
+    outOfLevelWords: Array<{ word: string; level: string }>
+    difficulty: {
+      targetLevel: string
+      sentenceCount: number
+      averageSentenceLength: number
+      maxSentenceLength: number
+      longWordRatio: number
+      withinRange: boolean
+    }
+    continuity: { required: boolean; passed: boolean; previousChoice?: string }
+    choices: { passed: boolean; uniqueChoiceCount: number }
+    issues: Array<{
+      code: string
+      message: string
+      words?: string[]
+      paragraphIndexes?: number[]
+    }>
+  }
   generation: {
     status: 'SUCCESS' | 'FALLBACK'
     provider: string
     model: string
     promptVersion: number
+    repairCount: number
   }
 }
 

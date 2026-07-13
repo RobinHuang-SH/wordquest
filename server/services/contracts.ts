@@ -1,3 +1,5 @@
+import type { StoryValidationReport } from './story-validation.js'
+
 export interface AuthUser {
   id: string
   email: string
@@ -119,11 +121,13 @@ export type StoryDocument = {
   stateBefore: Record<string, unknown>
   stateAfter: Record<string, unknown>
   vocabularyCoverage: string[]
+  validation: StoryValidationReport
   generation: {
     status: 'SUCCESS' | 'FALLBACK'
     provider: string
     model: string
     promptVersion: number
+    repairCount: number
   }
 }
 export interface StoryService {

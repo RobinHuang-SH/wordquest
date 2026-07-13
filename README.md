@@ -67,6 +67,8 @@ Authenticated learners can call `POST /api/v1/stories/generate` with a daily ses
 
 Provider credentials are server-only (`LLM_API_KEY`) and never use a `VITE_` prefix. `LLM_BASE_URL` supports an OpenAI-compatible structured-output endpoint; `LLM_MODEL`, `LLM_TIMEOUT_MS`, `LLM_MAX_RETRIES`, and `LLM_RATE_LIMIT_PER_MINUTE` control generation. Without a key, after transient failures, or when the user limit is reached, the API persists and returns a deterministic fallback story instead of blocking learning. Prompt versions and every generation outcome are stored in `story_prompt_versions` and `story_generations`.
 
+Before persistence, the server tokenizes and lemmatizes the English paragraphs and verifies measured target-word coverage instead of trusting the model-reported list. It also detects catalog words above the learner CEFR level, excessive sentence complexity, broken `previousChoice` continuity, empty story state, and duplicate plot continuations. Failed drafts receive a focused repair prompt that asks the model to rewrite only affected sentences or choices; exhausted repairs switch to a deterministic story that is validated by the same pipeline. The API returns the validation report and repair count, and both are persisted in `story_generations`.
+
 ## PostgreSQL and Prisma
 
 Start the local PostgreSQL service, apply migrations, and load the idempotent demo dataset:
@@ -165,7 +167,7 @@ localStorage 当前使用带 `version` 的数据信封；旧版直接保存的�
 项目的逐步完善计划见 `ROADMAP.md`。采用“一项优化一个分支”。已完成可编辑名字、学习偏好联动、多日学习记录、领域数据层拆分、自动化质量基础、离线 PWA 和无障碍优化，下一阶段分支为：
 
 ```text
-feature/auth-sync
+feature/story-bible
 ```
 
 ## Account authentication and cross-device sync
@@ -190,9 +192,10 @@ GET  /api/v1/sync/state
 POST /api/v1/sync/import
 PUT  /api/v1/sync/state
 GET  /api/v1/sync/conflicts
+POST /api/v1/stories/generate
 ```
 
-Set `VITE_API_BASE_URL` when the frontend cannot reach the API at its default `http://localhost:3001`. The next roadmap branch is `feature/llm-story-service`.
+Set `VITE_API_BASE_URL` when the frontend cannot reach the API at its default `http://localhost:3001`. The next roadmap branch is `feature/story-bible`.
 
 ## Adaptive vocabulary engine
 
