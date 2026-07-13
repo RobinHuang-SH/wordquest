@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap');
 :root {
   --ink: #172721;
   --muted: #718078;
@@ -3377,5 +3377,94 @@ kbd {
   }
   .shortcut-list > div {
     grid-template-columns: 90px 1fr;
+  }
+}
+
+.account-settings {
+  grid-column: 1 / -1;
+}
+.settings-copy {
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+.auth-tabs,
+.account-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.auth-tabs button {
+  flex: 1;
+  justify-content: center;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+}
+.auth-tabs button.active {
+  color: var(--ink);
+  border-color: var(--green2);
+  background: var(--mint);
+}
+.auth-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+.auth-form label {
+  align-items: center;
+}
+.auth-form input {
+  min-width: min(300px, 100%);
+}
+.account-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.account-summary div {
+  display: grid;
+  gap: 4px;
+}
+.account-summary small {
+  color: var(--muted);
+}
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--mint);
+  color: var(--green);
+  font-weight: 700;
+}
+.sync-badge svg {
+  width: 16px;
+  height: 16px;
+}
+.sync-badge.offline,
+.sync-badge.error {
+  background: #fff3df;
+  color: #8a5200;
+}
+.sync-badge.syncing svg {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 640px) {
+  .account-summary,
+  .auth-form label {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .auth-form input {
+    min-width: 0;
+    width: 100%;
   }
 }

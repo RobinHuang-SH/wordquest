@@ -5,7 +5,10 @@
     "description": "词境英语的服务端 API。当前阶段提供基础设施与系统接口。",
     "version": "0.1.0"
   },
-  "components": { "schemas": {} },
+  "components": {
+    "securitySchemes": { "bearerAuth": { "type": "http", "scheme": "bearer" } },
+    "schemas": {}
+  },
   "paths": {
     "/health": {
       "get": {
@@ -53,13 +56,518 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["name", "version", "status", "documentation", "plannedResources"],
+                  "required": [
+                    "name",
+                    "version",
+                    "status",
+                    "documentation",
+                    "availableResources",
+                    "plannedResources"
+                  ],
                   "properties": {
                     "name": { "type": "string" },
                     "version": { "type": "string" },
                     "status": { "type": "string" },
                     "documentation": { "type": "string" },
+                    "availableResources": { "type": "array", "items": { "type": "string" } },
                     "plannedResources": { "type": "array", "items": { "type": "string" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "summary": "??????",
+        "tags": ["auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password", "displayName", "deviceId"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "maxLength": 320 },
+                  "password": { "type": "string", "minLength": 8, "maxLength": 128 },
+                  "displayName": { "type": "string", "minLength": 1, "maxLength": 100 },
+                  "deviceId": { "type": "string", "minLength": 1, "maxLength": 100 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["token", "expiresAt", "user"],
+                  "properties": {
+                    "token": { "type": "string" },
+                    "expiresAt": { "type": "string", "format": "date-time" },
+                    "user": {
+                      "type": "object",
+                      "required": ["id", "email", "displayName"],
+                      "properties": {
+                        "id": { "type": "string" },
+                        "email": { "type": "string" },
+                        "displayName": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "timestamp", "path"],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message", "statusCode", "requestId"],
+                      "properties": {
+                        "code": { "type": "string" },
+                        "message": { "type": "string" },
+                        "statusCode": { "type": "integer" },
+                        "requestId": { "type": "string" },
+                        "details": {}
+                      }
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "path": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "timestamp", "path"],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message", "statusCode", "requestId"],
+                      "properties": {
+                        "code": { "type": "string" },
+                        "message": { "type": "string" },
+                        "statusCode": { "type": "integer" },
+                        "requestId": { "type": "string" },
+                        "details": {}
+                      }
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "path": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "????",
+        "tags": ["auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password", "deviceId"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "maxLength": 320 },
+                  "password": { "type": "string", "minLength": 8, "maxLength": 128 },
+                  "displayName": { "type": "string", "minLength": 1, "maxLength": 100 },
+                  "deviceId": { "type": "string", "minLength": 1, "maxLength": 100 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["token", "expiresAt", "user"],
+                  "properties": {
+                    "token": { "type": "string" },
+                    "expiresAt": { "type": "string", "format": "date-time" },
+                    "user": {
+                      "type": "object",
+                      "required": ["id", "email", "displayName"],
+                      "properties": {
+                        "id": { "type": "string" },
+                        "email": { "type": "string" },
+                        "displayName": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "timestamp", "path"],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message", "statusCode", "requestId"],
+                      "properties": {
+                        "code": { "type": "string" },
+                        "message": { "type": "string" },
+                        "statusCode": { "type": "integer" },
+                        "requestId": { "type": "string" },
+                        "details": {}
+                      }
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "path": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "summary": "??????",
+        "tags": ["auth"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "email", "displayName"],
+                  "properties": {
+                    "id": { "type": "string" },
+                    "email": { "type": "string" },
+                    "displayName": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "timestamp", "path"],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message", "statusCode", "requestId"],
+                      "properties": {
+                        "code": { "type": "string" },
+                        "message": { "type": "string" },
+                        "statusCode": { "type": "integer" },
+                        "requestId": { "type": "string" },
+                        "details": {}
+                      }
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "path": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "summary": "??????",
+        "tags": ["auth"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "204": { "description": "Default Response" },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "timestamp", "path"],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message", "statusCode", "requestId"],
+                      "properties": {
+                        "code": { "type": "string" },
+                        "message": { "type": "string" },
+                        "statusCode": { "type": "integer" },
+                        "requestId": { "type": "string" },
+                        "details": {}
+                      }
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "path": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sync/state": {
+      "get": {
+        "summary": "????????",
+        "tags": ["sync"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": ["revision", "state", "clientUpdatedAt", "sourceDeviceId"],
+                      "properties": {
+                        "revision": { "type": "integer", "minimum": 0 },
+                        "state": {},
+                        "clientUpdatedAt": { "type": "string", "format": "date-time" },
+                        "sourceDeviceId": { "type": "string" },
+                        "conflict": { "type": "boolean" }
+                      }
+                    },
+                    { "type": "null" }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "timestamp", "path"],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message", "statusCode", "requestId"],
+                      "properties": {
+                        "code": { "type": "string" },
+                        "message": { "type": "string" },
+                        "statusCode": { "type": "integer" },
+                        "requestId": { "type": "string" },
+                        "details": {}
+                      }
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "path": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "?????????????",
+        "tags": ["sync"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["deviceId", "baseRevision", "clientUpdatedAt", "state"],
+                "properties": {
+                  "deviceId": { "type": "string", "minLength": 1, "maxLength": 100 },
+                  "baseRevision": { "type": "integer", "minimum": 0 },
+                  "clientUpdatedAt": { "type": "string", "format": "date-time" },
+                  "state": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["revision", "state", "clientUpdatedAt", "sourceDeviceId"],
+                  "properties": {
+                    "revision": { "type": "integer", "minimum": 0 },
+                    "state": {},
+                    "clientUpdatedAt": { "type": "string", "format": "date-time" },
+                    "sourceDeviceId": { "type": "string" },
+                    "conflict": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "timestamp", "path"],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message", "statusCode", "requestId"],
+                      "properties": {
+                        "code": { "type": "string" },
+                        "message": { "type": "string" },
+                        "statusCode": { "type": "integer" },
+                        "requestId": { "type": "string" },
+                        "details": {}
+                      }
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "path": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sync/import": {
+      "post": {
+        "summary": "????????",
+        "tags": ["sync"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["deviceId", "baseRevision", "clientUpdatedAt", "state"],
+                "properties": {
+                  "deviceId": { "type": "string", "minLength": 1, "maxLength": 100 },
+                  "baseRevision": { "type": "integer", "minimum": 0 },
+                  "clientUpdatedAt": { "type": "string", "format": "date-time" },
+                  "state": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["revision", "state", "clientUpdatedAt", "sourceDeviceId"],
+                  "properties": {
+                    "revision": { "type": "integer", "minimum": 0 },
+                    "state": {},
+                    "clientUpdatedAt": { "type": "string", "format": "date-time" },
+                    "sourceDeviceId": { "type": "string" },
+                    "conflict": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "timestamp", "path"],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message", "statusCode", "requestId"],
+                      "properties": {
+                        "code": { "type": "string" },
+                        "message": { "type": "string" },
+                        "statusCode": { "type": "integer" },
+                        "requestId": { "type": "string" },
+                        "details": {}
+                      }
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "path": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sync/conflicts": {
+      "get": {
+        "summary": "????????",
+        "tags": ["sync"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "deviceId",
+                      "baseRevision",
+                      "serverRevision",
+                      "resolutionStrategy",
+                      "createdAt"
+                    ],
+                    "properties": {
+                      "id": { "type": "string" },
+                      "deviceId": { "type": "string" },
+                      "baseRevision": { "type": "integer" },
+                      "serverRevision": { "type": "integer" },
+                      "resolutionStrategy": { "type": "string" },
+                      "createdAt": { "type": "string", "format": "date-time" }
+                    }
                   }
                 }
               }
@@ -71,6 +579,8 @@
   },
   "servers": [{ "url": "http://localhost:3001", "description": "development" }],
   "tags": [
+    { "name": "auth", "description": "???????" },
+    { "name": "sync", "description": "????????????" },
     { "name": "system", "description": "服务状态与 API 元信息" },
     { "name": "daily-session", "description": "每日学习任务" },
     { "name": "words", "description": "词汇与学习结果" },

@@ -6,6 +6,15 @@ import type { AppState } from '../domain/models'
 import { makeState } from '../test/factories'
 import { SettingsPage } from './SettingsPage'
 
+const accountSync = {
+  session: null,
+  status: 'local' as const,
+  lastSyncedAt: null,
+  signIn: vi.fn(),
+  signOut: vi.fn(),
+  syncNow: vi.fn(),
+}
+
 const pwa = {
   online: true,
   installed: false,
@@ -31,6 +40,7 @@ function renderSettings(initialState: Partial<AppState> = {}, onShowShortcuts = 
         notify={vi.fn()}
         onShowShortcuts={onShowShortcuts}
         pwa={pwa}
+        accountSync={accountSync}
       />
     )
   }

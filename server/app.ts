@@ -9,10 +9,18 @@ import type { ApiConfig } from './config.js'
 import { registerErrorHandlers } from './errors.js'
 import { registerApiRoot } from './routes/api-root.js'
 import { registerHealthRoutes } from './routes/health.js'
+import { registerAuthRoutes } from './routes/auth.js'
+import { registerSyncRoutes } from './routes/sync.js'
+import { createPrismaClient } from './database/client.js'
+import { PrismaAuthService } from './services/auth-service.js'
+import { PrismaSyncService } from './services/sync-service.js'
+import type { AuthService, SyncService } from './services/contracts.js'
 
 export interface BuildAppOptions {
   env?: Record<string, string | undefined>
   logger?: FastifyServerOptions['logger']
+  authService?: AuthService
+  syncService?: SyncService
 }
 
 const serviceVersion = '0.1.0'
@@ -50,7 +58,10 @@ export async function buildApp(options: BuildAppOptions = {}) {
         version: serviceVersion,
       },
       servers: [{ url: config.API_BASE_URL, description: config.NODE_ENV }],
+      components: { securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer' } } },
       tags: [
+        { name: 'auth', description: '???????' },
+        { name: 'sync', description: '????????????' },
         { name: 'system', description: '服务状态与 API 元信息' },
         { name: 'daily-session', description: '每日学习任务' },
         { name: 'words', description: '词汇与学习结果' },
@@ -74,6 +85,14 @@ export async function buildApp(options: BuildAppOptions = {}) {
   registerErrorHandlers(app)
   registerHealthRoutes(app, config, serviceVersion)
   registerApiRoot(app)
+
+  let prisma: ReturnType<typeof createPrismaClient> | undefined
+  const getPrisma = () => (prisma ??= createPrismaClient(config.DATABASE_URL))
+  const authService = options.authService ?? new PrismaAuthService(getPrisma())
+  const syncService = options.syncService ?? new PrismaSyncService(getPrisma())
+  registerAuthRoutes(app, authService)
+  registerSyncRoutes(app, authService, syncService)
+  if (prisma) app.addHook('onClose', async () => prisma?.$disconnect())
 
   return app
 }

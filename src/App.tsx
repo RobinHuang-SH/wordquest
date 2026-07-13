@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { CheckCircle2 } from 'lucide-react'
 import type { AppState, Page } from './domain/models'
 import { completeDailySession, getPreviousSession } from './domain/sessions'
@@ -15,6 +15,7 @@ import { Vocabulary } from './pages/Vocabulary'
 import { Report } from './pages/Report'
 import { SettingsPage } from './pages/SettingsPage'
 import { usePwaLifecycle } from './services/pwa'
+import { useAccountSync } from './services/useAccountSync'
 import './styles.css'
 
 function App() {
@@ -27,6 +28,8 @@ function App() {
   const mainRef = useRef<HTMLElement>(null)
   const pageFocusReady = useRef(false)
   const pwa = usePwaLifecycle()
+  const replaceState = useCallback((next: AppState) => setState(next), [])
+  const accountSync = useAccountSync(state, replaceState)
 
   useEffect(() => saveAppState(state), [state])
   useEffect(() => {
@@ -130,6 +133,7 @@ function App() {
             patch={patch}
             notify={notify}
             pwa={pwa}
+            accountSync={accountSync}
             onShowShortcuts={() => setShortcutHelpOpen(true)}
           />
         )}
