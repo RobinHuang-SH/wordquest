@@ -39,6 +39,9 @@ const ui = {
   minutes: '\u5206\u949f\u9605\u8bfb',
   readParagraph: '\u6717\u8bfb\u672c\u6bb5\u82f1\u6587',
   structuredReady: '\u7ed3\u6784\u5316\u6545\u4e8b\u5df2\u5c31\u7eea',
+  validationPassed:
+    '\u8bcd\u6c47\u3001\u96be\u5ea6\u4e0e\u8fde\u7eed\u6027\u6821\u9a8c\u901a\u8fc7',
+  repaired: '\u81ea\u52a8\u4fee\u590d',
   offlineStory: '\u672c\u5730\u79bb\u7ebf\u6545\u4e8b',
   highlighted: '\u5df2\u663e\u793a\u5168\u90e8\u9ad8\u4eae\u8bcd',
   viewWords: '\u67e5\u770b\u8bcd\u6c47',
@@ -99,7 +102,11 @@ export function Story({
     (total, paragraph) => total + paragraph.en.trim().split(/\s+/).length,
     0,
   )
-  const coverageCount = generated?.vocabularyCoverage.length ?? targetWords.length
+  const coverageCount =
+    generated?.validation.targetWords.covered.length ??
+    generated?.vocabularyCoverage.length ??
+    targetWords.length
+  const coverageTotal = generated?.validation.targetWords.total ?? targetWords.length
   const playAll = () => {
     if (playing) {
       speechSynthesis.cancel()
@@ -153,7 +160,13 @@ export function Story({
       <article className="story-paper">
         <div className="chapter-label">
           <span>CHAPTER 01</span>
-          <i>{generated?.generation.status === 'FALLBACK' ? 'SAFE FALLBACK' : 'DAILY STORY'}</i>
+          <i>
+            {generated?.generation.status === 'FALLBACK'
+              ? 'SAFE FALLBACK'
+              : generated?.validation.passed
+                ? 'VALIDATED STORY'
+                : 'DAILY STORY'}
+          </i>
         </div>
         <h1>{generated?.title ?? 'The Signal in the Forest'}</h1>
         <p className="story-subtitle">{generated?.titleZh ?? ui.localTitleZh}</p>
@@ -195,10 +208,13 @@ export function Story({
           <div>
             <CheckCircle2 />
             <span>
-              <b>{ui.structuredReady}</b>
+              <b>{generated?.validation.passed ? ui.validationPassed : ui.structuredReady}</b>
               <small>
-                {coverageCount} / {targetWords.length} {ui.wordsIncluded} /{' '}
+                {coverageCount} / {coverageTotal} {ui.wordsIncluded} /{' '}
                 {generated ? generated.generation.model : ui.offlineStory}
+                {generated?.generation.repairCount
+                  ? ` / ${ui.repaired} ${generated.generation.repairCount}`
+                  : ''}
               </small>
             </span>
           </div>

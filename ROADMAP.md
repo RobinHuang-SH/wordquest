@@ -114,7 +114,7 @@ main（稳定可运行）
 - 重试、超时、限流和降级故事
 - 保存 Prompt 版本与生成记录
 
-### 3.3 `feature/story-validation`
+### 3.3 `feature/story-validation` (completed)
 
 - 目标词 20/20 覆盖检查
 - 分词、词形还原和越界词检测
@@ -176,4 +176,6 @@ Vocabulary engine implementation: licensed-source metadata, a 56-word curated st
 
 LLM story service implementation: server-only provider credentials, strict JSON Schema output, transient retries, request timeouts, per-user rate limiting, deterministic fallback stories, idempotent story persistence, prompt versioning, and generation audit records.
 
-Current next branch: `feature/story-validation`.
+Story validation implementation: deterministic tokenization and lemmatization, exact target-word coverage measured from English paragraphs, catalog-based CEFR boundary detection, sentence difficulty metrics, continuity and distinct-choice checks, focused model repair prompts, validated fallback stories, and persisted validation reports.
+
+Current next branch: `feature/story-bible`.

@@ -63,7 +63,29 @@ const story: StoryService = {
     stateBefore: {},
     stateAfter: { location: 'door' },
     vocabularyCoverage: ['discover'],
-    generation: { status: 'SUCCESS', provider: 'fake', model: 'fake-story', promptVersion: 1 },
+    validation: {
+      passed: true,
+      targetWords: { total: 1, covered: ['discover'], missing: [] },
+      outOfLevelWords: [],
+      difficulty: {
+        targetLevel: 'B1',
+        sentenceCount: 1,
+        averageSentenceLength: 4,
+        maxSentenceLength: 4,
+        longWordRatio: 0,
+        withinRange: true,
+      },
+      continuity: { required: false, passed: true },
+      choices: { passed: true, uniqueChoiceCount: 3 },
+      issues: [],
+    },
+    generation: {
+      status: 'SUCCESS',
+      provider: 'fake',
+      model: 'fake-story',
+      promptVersion: 2,
+      repairCount: 0,
+    },
   })),
 }
 let app: FastifyInstance | undefined
@@ -91,7 +113,8 @@ describe('story routes', () => {
     expect(response.statusCode).toBe(200)
     expect(response.json()).toMatchObject({
       title: 'The Blue Door',
-      generation: { status: 'SUCCESS' },
+      validation: { passed: true, targetWords: { total: 1, missing: [] } },
+      generation: { status: 'SUCCESS', repairCount: 0 },
     })
     expect(story.getOrGenerate).toHaveBeenCalledWith('user-1', {
       sessionId,

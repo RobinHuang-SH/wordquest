@@ -33,6 +33,7 @@ const storySchema = {
     'stateBefore',
     'stateAfter',
     'vocabularyCoverage',
+    'validation',
     'generation',
   ],
   properties: {
@@ -47,14 +48,96 @@ const storySchema = {
     stateBefore: { type: 'object', additionalProperties: true },
     stateAfter: { type: 'object', additionalProperties: true },
     vocabularyCoverage: { type: 'array', items: { type: 'string' } },
+    validation: {
+      type: 'object',
+      required: [
+        'passed',
+        'targetWords',
+        'outOfLevelWords',
+        'difficulty',
+        'continuity',
+        'choices',
+        'issues',
+      ],
+      properties: {
+        passed: { type: 'boolean' },
+        targetWords: {
+          type: 'object',
+          required: ['total', 'covered', 'missing'],
+          properties: {
+            total: { type: 'integer' },
+            covered: { type: 'array', items: { type: 'string' } },
+            missing: { type: 'array', items: { type: 'string' } },
+          },
+        },
+        outOfLevelWords: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['word', 'level'],
+            properties: { word: { type: 'string' }, level: { type: 'string' } },
+          },
+        },
+        difficulty: {
+          type: 'object',
+          required: [
+            'targetLevel',
+            'sentenceCount',
+            'averageSentenceLength',
+            'maxSentenceLength',
+            'longWordRatio',
+            'withinRange',
+          ],
+          properties: {
+            targetLevel: { type: 'string' },
+            sentenceCount: { type: 'integer' },
+            averageSentenceLength: { type: 'number' },
+            maxSentenceLength: { type: 'integer' },
+            longWordRatio: { type: 'number' },
+            withinRange: { type: 'boolean' },
+          },
+        },
+        continuity: {
+          type: 'object',
+          required: ['required', 'passed'],
+          properties: {
+            required: { type: 'boolean' },
+            passed: { type: 'boolean' },
+            previousChoice: { type: 'string' },
+          },
+        },
+        choices: {
+          type: 'object',
+          required: ['passed', 'uniqueChoiceCount'],
+          properties: {
+            passed: { type: 'boolean' },
+            uniqueChoiceCount: { type: 'integer' },
+          },
+        },
+        issues: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['code', 'message'],
+            properties: {
+              code: { type: 'string' },
+              message: { type: 'string' },
+              words: { type: 'array', items: { type: 'string' } },
+              paragraphIndexes: { type: 'array', items: { type: 'integer' } },
+            },
+          },
+        },
+      },
+    },
     generation: {
       type: 'object',
-      required: ['status', 'provider', 'model', 'promptVersion'],
+      required: ['status', 'provider', 'model', 'promptVersion', 'repairCount'],
       properties: {
         status: { type: 'string', enum: ['SUCCESS', 'FALLBACK'] },
         provider: { type: 'string' },
         model: { type: 'string' },
         promptVersion: { type: 'integer' },
+        repairCount: { type: 'integer' },
       },
     },
   },

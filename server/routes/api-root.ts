@@ -37,7 +37,7 @@ export function registerApiRoot(app: FastifyInstance) {
     async () => ({
       name: 'WordQuest API',
       version: 'v1',
-      status: 'llm-story-service-ready',
+      status: 'story-validation-ready',
       documentation: '/docs',
       availableResources,
       plannedResources,

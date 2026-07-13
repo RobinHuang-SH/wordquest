@@ -24,11 +24,28 @@ describe('story API', () => {
       stateBefore: {},
       stateAfter: {},
       vocabularyCoverage: ['story'],
+      validation: {
+        passed: true,
+        targetWords: { total: 1, covered: ['discover'], missing: [] },
+        outOfLevelWords: [],
+        difficulty: {
+          targetLevel: 'B1',
+          sentenceCount: 1,
+          averageSentenceLength: 4,
+          maxSentenceLength: 4,
+          longWordRatio: 0,
+          withinRange: true,
+        },
+        continuity: { required: false, passed: true },
+        choices: { passed: true, uniqueChoiceCount: 3 },
+        issues: [],
+      },
       generation: {
         status: 'FALLBACK',
         provider: 'wordquest',
         model: 'fallback',
-        promptVersion: 1,
+        promptVersion: 2,
+        repairCount: 0,
       },
     }
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => payload })

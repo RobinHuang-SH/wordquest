@@ -7,12 +7,19 @@ import {
   type GeneratedStory,
 } from './story-schema.js'
 import { StoryModelError, type StoryModelClient } from './story-model-client.js'
+import {
+  buildStoryRepairPrompt,
+  parseStoredValidationReport,
+  validateGeneratedStory,
+  type StoryValidationReport,
+  type StoryVocabularyEntry,
+} from './story-validation.js'
 import { ApiError } from './api-error.js'
 
 const PROMPT_KEY = 'daily-interactive-story'
-const PROMPT_VERSION = 1
-const SYSTEM_PROMPT = `You create safe, encouraging bilingual interactive stories for English learners. Return only JSON that matches the supplied schema. Use all target vocabulary naturally, keep language at the requested CEFR level, provide exactly three choices, and never include markdown.`
-const USER_PROMPT_TEMPLATE = `Create a {length} {genre} story for a {level} learner. Target words: {targetWords}. Previous choice: {previousChoice}. Continue the existing story state when supplied.`
+const PROMPT_VERSION = 2
+const SYSTEM_PROMPT = `You create safe, encouraging bilingual interactive stories for English learners. Return only JSON that matches the supplied schema. Use every target vocabulary item naturally in the English paragraphs, keep sentence and vocabulary difficulty at the requested CEFR level, provide exactly three genuinely different choices, preserve the supplied previous choice in stateBefore.previousChoice, and never include markdown.`
+const USER_PROMPT_TEMPLATE = `Create a {length} {genre} story for a {level} learner. Target words: {targetWords}. Previous choice: {previousChoice}. Continue the existing story state when supplied. The English paragraphs, not merely vocabularyCoverage, must contain every target word or a natural inflected form.`
 
 export class SlidingWindowRateLimiter {
   private events = new Map<string, number[]>()
@@ -120,13 +127,37 @@ export class PrismaStoryService implements StoryService {
   ): Promise<StoryDocument> {
     const existing = await this.prisma.storyGeneration.findUnique({
       where: { sessionId: input.sessionId },
-      include: { promptVersion: true, session: { select: { sessionDate: true } } },
+      include: {
+        promptVersion: true,
+        session: {
+          select: {
+            sessionDate: true,
+            user: { select: { targetLevel: true } },
+            words: {
+              orderBy: { sequence: 'asc' },
+              select: { word: { select: { word: true, lemma: true, level: true } } },
+            },
+          },
+        },
+      },
     })
     if (existing) {
       if (existing.userId !== userId)
         throw new ApiError(404, 'SESSION_NOT_FOUND', 'Daily session not found')
+      const story = parseGeneratedStory(existing.responseJson)
+      let validation = parseStoredValidationReport(existing.validationJson)
+      if (!validation) {
+        const vocabularyCatalog = await this.loadVocabularyCatalog()
+        validation = validateGeneratedStory({
+          story,
+          targetWords: existing.session.words.map((item) => item.word),
+          vocabularyCatalog,
+          targetLevel: existing.session.user.targetLevel,
+          previousChoice: story.stateBefore.previousChoice as string | undefined,
+        })
+      }
       return this.toDocument(
-        parseGeneratedStory(existing.responseJson),
+        story,
         existing.sessionId,
         existing.storyNodeId ?? '',
         existing.session.sessionDate.toISOString().slice(0, 10),
@@ -134,6 +165,8 @@ export class PrismaStoryService implements StoryService {
         existing.provider,
         existing.model,
         existing.promptVersion.version,
+        existing.repairCount,
+        validation,
       )
     }
 
@@ -148,7 +181,13 @@ export class PrismaStoryService implements StoryService {
     if (!session.words.length)
       throw new ApiError(409, 'SESSION_WORDS_REQUIRED', 'Generate the daily vocabulary plan first')
 
-    const targetWords = session.words.map((item) => item.word.word)
+    const targetEntries: StoryVocabularyEntry[] = session.words.map((item) => ({
+      word: item.word.word,
+      lemma: item.word.lemma,
+      level: item.word.level,
+    }))
+    const targetWords = targetEntries.map((item) => item.word)
+    const vocabularyCatalog = await this.loadVocabularyCatalog()
     const request = {
       sessionId: session.id,
       date: session.sessionDate.toISOString().slice(0, 10),
@@ -172,30 +211,54 @@ export class PrismaStoryService implements StoryService {
 
     const started = this.now()
     let story: GeneratedStory | undefined
+    let validation: StoryValidationReport | undefined
     let provider = 'wordquest'
-    let model = 'deterministic-fallback-v1'
+    let model = 'deterministic-fallback-v2'
     let status: StoryGenerationStatus = StoryGenerationStatus.FALLBACK
     let fallbackReason: string | undefined
     let errorMessage: string | undefined
     let attemptCount = 0
+    let repairCount = 0
+    let validationFailed = false
 
     if (!this.modelClient) fallbackReason = 'LLM_NOT_CONFIGURED'
     else if (!this.limiter.tryConsume(userId)) fallbackReason = 'RATE_LIMITED'
     else {
+      let userPrompt = renderPrompt(request)
       for (let attempt = 0; attempt <= this.options.maxRetries; attempt += 1) {
         attemptCount += 1
         try {
           const result = await this.modelClient.generate({
             systemPrompt: SYSTEM_PROMPT,
-            userPrompt: renderPrompt(request),
+            userPrompt,
             schema: generatedStoryJsonSchema,
             timeoutMs: this.options.timeoutMs,
           })
-          story = parseGeneratedStory(result.value)
+          const draft = parseGeneratedStory(result.value)
+          const draftValidation = validateGeneratedStory({
+            story: draft,
+            targetWords: targetEntries,
+            vocabularyCatalog,
+            targetLevel: session.user.targetLevel,
+            previousChoice: input.previousChoice,
+          })
           provider = result.provider
           model = result.model
-          status = StoryGenerationStatus.SUCCESS
-          break
+          if (draftValidation.passed) {
+            story = { ...draft, vocabularyCoverage: draftValidation.targetWords.covered }
+            validation = draftValidation
+            status = StoryGenerationStatus.SUCCESS
+            break
+          }
+          validationFailed = true
+          errorMessage = draftValidation.issues.map((issue) => issue.code).join(', ')
+          if (attempt >= this.options.maxRetries) break
+          repairCount += 1
+          userPrompt = buildStoryRepairPrompt({
+            originalPrompt: renderPrompt(request),
+            story: draft,
+            report: draftValidation,
+          })
         } catch (error) {
           errorMessage = error instanceof Error ? error.message : 'Unknown model error'
           const transient = error instanceof StoryModelError ? error.transient : false
@@ -204,10 +267,21 @@ export class PrismaStoryService implements StoryService {
           await this.sleep(Math.min(1000, 100 * 2 ** attempt))
         }
       }
-      if (!story) fallbackReason = 'MODEL_GENERATION_FAILED'
+      if (!story)
+        fallbackReason = validationFailed ? 'STORY_VALIDATION_FAILED' : 'MODEL_GENERATION_FAILED'
     }
     story ??= fallbackStory(targetWords, input.previousChoice)
-    const validated = parseGeneratedStory(story)
+    const parsed = parseGeneratedStory(story)
+    validation ??= validateGeneratedStory({
+      story: parsed,
+      targetWords: targetEntries,
+      vocabularyCatalog,
+      targetLevel: session.user.targetLevel,
+      previousChoice: input.previousChoice,
+    })
+    if (!validation.passed)
+      throw new ApiError(500, 'FALLBACK_STORY_INVALID', 'The safe fallback story failed validation')
+    const validated = { ...parsed, vocabularyCoverage: validation.targetWords.covered }
 
     let series = await this.prisma.storySeries.findFirst({
       where: { userId, status: StorySeriesStatus.ACTIVE },
@@ -261,11 +335,13 @@ export class PrismaStoryService implements StoryService {
           model,
           status,
           attemptCount,
+          repairCount,
           latencyMs,
           fallbackReason,
           errorMessage,
           requestJson: request as Prisma.InputJsonValue,
           responseJson: validated as Prisma.InputJsonValue,
+          validationJson: validation as Prisma.InputJsonValue,
         },
       })
       await tx.dailySession.update({ where: { id: session.id }, data: { storyId: node.id } })
@@ -281,7 +357,15 @@ export class PrismaStoryService implements StoryService {
       provider,
       model,
       promptVersion.version,
+      repairCount,
+      validation,
     )
+  }
+
+  private async loadVocabularyCatalog(): Promise<StoryVocabularyEntry[]> {
+    return this.prisma.vocabulary.findMany({
+      select: { word: true, lemma: true, level: true },
+    })
   }
 
   private toDocument(
@@ -293,13 +377,16 @@ export class PrismaStoryService implements StoryService {
     provider: string,
     model: string,
     promptVersion: number,
+    repairCount: number,
+    validation: StoryValidationReport,
   ): StoryDocument {
     return {
       sessionId,
       storyNodeId,
       date,
       ...story,
-      generation: { status, provider, model, promptVersion },
+      validation,
+      generation: { status, provider, model, promptVersion, repairCount },
     }
   }
 }

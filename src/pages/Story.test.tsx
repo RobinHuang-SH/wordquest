@@ -38,11 +38,28 @@ const dailyStory = {
   stateBefore: {},
   stateAfter: {},
   vocabularyCoverage: ['discover', 'signal'],
+  validation: {
+    passed: true,
+    targetWords: { total: 2, covered: ['discover', 'signal'], missing: [] },
+    outOfLevelWords: [],
+    difficulty: {
+      targetLevel: 'B1',
+      sentenceCount: 1,
+      averageSentenceLength: 4,
+      maxSentenceLength: 4,
+      longWordRatio: 0,
+      withinRange: true,
+    },
+    continuity: { required: false, passed: true },
+    choices: { passed: true, uniqueChoiceCount: 3 },
+    issues: [],
+  },
   generation: {
     status: 'SUCCESS' as const,
     provider: 'fake',
     model: 'story-model',
-    promptVersion: 1,
+    promptVersion: 2,
+    repairCount: 0,
   },
 }
 
@@ -59,6 +76,11 @@ describe('Story', () => {
     )
     expect(screen.getByRole('heading', { name: 'The Clockwork Garden' })).toBeVisible()
     expect(screen.getByText(/story-model/)).toBeVisible()
+    expect(
+      screen.getByText(
+        '\u8bcd\u6c47\u3001\u96be\u5ea6\u4e0e\u8fde\u7eed\u6027\u6821\u9a8c\u901a\u8fc7',
+      ),
+    ).toBeVisible()
     await userEvent.click(screen.getByRole('button', { name: /Open the gate/ }))
     expect(completeToday).toHaveBeenCalledWith('open-gate')
   })

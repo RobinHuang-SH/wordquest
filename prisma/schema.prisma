@@ -271,11 +271,13 @@ model StoryGeneration {
   model           String                @db.VarChar(100)
   status          StoryGenerationStatus
   attemptCount    Int                   @default(0) @map("attempt_count")
+  repairCount     Int                   @default(0) @map("repair_count")
   latencyMs       Int                   @default(0) @map("latency_ms")
   fallbackReason  String?               @map("fallback_reason") @db.VarChar(100)
   errorMessage    String?               @map("error_message") @db.Text
   requestJson     Json                  @map("request_json")
   responseJson    Json                  @map("response_json")
+  validationJson  Json                  @default("{}") @map("validation_json")
   createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   session         DailySession          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
