@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 const projectRoot = fileURLToPath(new URL('..', import.meta.url))
 const distDir = join(projectRoot, 'dist')
+const basePath = `/${(process.env.VITE_PUBLIC_BASE || '/').replace(/^\/+|\/+$/g, '')}${process.env.VITE_PUBLIC_BASE && process.env.VITE_PUBLIC_BASE !== '/' ? '/' : ''}`
 
 async function collectFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true })
@@ -25,13 +26,17 @@ for (const file of files) {
 }
 const version = hash.digest('hex').slice(0, 12)
 const urls = Array.from(
-  new Set(['/', ...files.map((file) => '/' + relative(distDir, file).split(sep).join('/'))]),
+  new Set([
+    basePath,
+    ...files.map((file) => basePath + relative(distDir, file).split(sep).join('/')),
+  ]),
 ).sort()
 
 const template = await readFile(join(projectRoot, 'scripts/service-worker.template'), 'utf8')
 const source = template
   .replace('__WORDQUEST_VERSION__', JSON.stringify(version))
   .replace('__WORDQUEST_APP_SHELL__', JSON.stringify(urls, null, 2))
+  .replace('__WORDQUEST_BASE_PATH__', JSON.stringify(basePath))
 
 await writeFile(join(distDir, 'sw.js'), source, 'utf8')
 console.log('Generated service worker ' + version + ' with ' + urls.length + ' precached URLs')

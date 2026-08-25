@@ -1,4 +1,4 @@
-import { todayWords, type Word } from '../data'
+import type { Word } from '../data'
 import type { AppState } from './models'
 
 export const quizQuestions = [
@@ -34,17 +34,52 @@ export const quizQuestions = [
   },
 ]
 
-export function getQuizScore(answers: Record<number, string>) {
-  const correct = Object.entries(answers).filter(
-    ([index, answer]) => quizQuestions[+index]?.answer === answer,
-  ).length
-  return correct * 20
+export type QuizQuestion = (typeof quizQuestions)[number]
+
+export function getQuizQuestions(state: LearningState): QuizQuestion[] {
+  const words = getNewWords(state)
+  if (!isActivePlan(state) || !words.length) return quizQuestions
+
+  const fallbackOptions = ['其他含义', '尚未学习', '以上都不是']
+  return words.slice(0, 5).map((word, index) => {
+    const choices = [
+      word.meaning,
+      ...words
+        .filter((candidate) => candidate.word !== word.word)
+        .map((candidate) => candidate.meaning),
+      ...fallbackOptions,
+    ].filter((value, optionIndex, values) => values.indexOf(value) === optionIndex)
+    const options = choices.slice(0, 4)
+    const shift = index % options.length
+    return {
+      word: word.word,
+      q: `${word.word} 的正确含义是？`,
+      options: [...options.slice(shift), ...options.slice(0, shift)],
+      answer: word.meaning,
+    }
+  })
 }
 
-type LearningState = Pick<AppState, 'wordMix' | 'learned' | 'activeDate' | 'dailyWordPlan'>
+export function getQuizScore(
+  answers: Record<number, string>,
+  questions: QuizQuestion[] = quizQuestions,
+) {
+  const correct = Object.entries(answers).filter(
+    ([index, answer]) => questions[+index]?.answer === answer,
+  ).length
+  return questions.length ? Math.round((correct / questions.length) * 100) : 0
+}
+
+type LearningState = Pick<
+  AppState,
+  'wordMix' | 'learned' | 'activeDate' | 'activeBatch' | 'dailyWordPlan'
+>
+
+const isActivePlan = (state: LearningState) =>
+  state.dailyWordPlan?.date === state.activeDate && state.dailyWordPlan.batch === state.activeBatch
 
 export function getReviewCount(state: LearningState) {
-  if (state.dailyWordPlan?.date === state.activeDate) return state.dailyWordPlan.reviewCount
+  if (isActivePlan(state)) return state.dailyWordPlan!.reviewCount
   if (state.wordMix === '20+0') return 0
   if (state.wordMix === '10+10') return 10
   if (state.wordMix === 'dynamic') {
@@ -57,20 +92,18 @@ export function getReviewCount(state: LearningState) {
 }
 
 export function getSessionWords(state: LearningState): Word[] {
-  if (state.dailyWordPlan?.date === state.activeDate) return state.dailyWordPlan.words
-  const reviewCount = getReviewCount(state)
-  const priority = [
-    ...todayWords.filter((word) => word.review),
-    ...todayWords.filter(
-      (word) =>
-        !word.review &&
-        (state.learned[word.word] === 'new' || state.learned[word.word] === 'fuzzy'),
-    ),
-    ...todayWords.filter(
-      (word) =>
-        !word.review && state.learned[word.word] !== 'new' && state.learned[word.word] !== 'fuzzy',
-    ),
-  ]
-  const reviewWords = new Set(priority.slice(0, reviewCount).map((word) => word.word))
-  return todayWords.map((word) => ({ ...word, review: reviewWords.has(word.word) }))
+  if (isActivePlan(state)) return state.dailyWordPlan!.words
+  return []
+}
+
+export function getNewWords(state: LearningState): Word[] {
+  return getSessionWords(state).filter((word) => !word.review)
+}
+
+export function getReviewWords(state: LearningState): Word[] {
+  return getSessionWords(state).filter((word) => word.review)
+}
+
+export function getLearnedNewWordCount(state: LearningState) {
+  return getNewWords(state).filter((word) => Boolean(state.learned[word.word])).length
 }

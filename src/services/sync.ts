@@ -1,9 +1,9 @@
 import type { AppState } from '../domain/models'
+import { apiUrl } from './api'
 
 const AUTH_KEY = 'wordquest-auth'
 const QUEUE_KEY = 'wordquest-sync-queue'
 const DEVICE_KEY = 'wordquest-device-id'
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001').replace(/\/$/, '')
 
 export type AccountSession = {
   token: string
@@ -20,6 +20,13 @@ export type SyncSnapshot = {
 }
 type QueuedSync = { state: AppState; baseRevision: number; clientUpdatedAt: string }
 
+export class AuthenticationExpiredError extends Error {
+  constructor(message = '登录状态已失效，请重新登录') {
+    super(message)
+    this.name = 'AuthenticationExpiredError'
+  }
+}
+
 export function getDeviceId() {
   let id = localStorage.getItem(DEVICE_KEY)
   if (!id) {
@@ -34,8 +41,26 @@ export function getDeviceId() {
 export function loadAccountSession(): AccountSession | null {
   try {
     const value = localStorage.getItem(AUTH_KEY)
-    return value ? JSON.parse(value) : null
+    if (!value) return null
+    const session = JSON.parse(value) as Partial<AccountSession>
+    const expiresAt = typeof session.expiresAt === 'string' ? Date.parse(session.expiresAt) : NaN
+    if (
+      typeof session.token !== 'string' ||
+      typeof session.expiresAt !== 'string' ||
+      typeof session.revision !== 'number' ||
+      !session.user ||
+      typeof session.user.id !== 'string' ||
+      typeof session.user.email !== 'string' ||
+      typeof session.user.displayName !== 'string' ||
+      !Number.isFinite(expiresAt) ||
+      expiresAt <= Date.now()
+    ) {
+      localStorage.removeItem(AUTH_KEY)
+      return null
+    }
+    return session as AccountSession
   } catch {
+    localStorage.removeItem(AUTH_KEY)
     return null
   }
 }
@@ -63,7 +88,7 @@ export function clearSyncQueue() {
 }
 
 async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...options,
     headers: {
       'content-type': 'application/json',
@@ -75,7 +100,9 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
     const body = (await response.json().catch(() => null)) as {
       error?: { message?: string }
     } | null
-    throw new Error(body?.error?.message || `???? (${response.status})`)
+    const message = body?.error?.message || `请求失败 (${response.status})`
+    if (response.status === 401) throw new AuthenticationExpiredError(message)
+    throw new Error(message)
   }
   if (response.status === 204) return undefined as T
   return response.json() as Promise<T>

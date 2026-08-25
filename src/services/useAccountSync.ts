@@ -3,6 +3,7 @@ import type { AppState } from '../domain/models'
 import { migrateAppState } from '../data/appStateRepository'
 import {
   authenticate,
+  AuthenticationExpiredError,
   enqueueSync,
   flushSyncQueue,
   loadAccountSession,
@@ -70,7 +71,14 @@ export function useAccountSync(
       const active = queued.session
       const snapshot = queued.snapshot || (await pushState(active, stateRef.current))
       applySnapshot(active, snapshot)
-    } catch {
+    } catch (error) {
+      if (error instanceof AuthenticationExpiredError) {
+        saveAccountSession(null)
+        sessionRef.current = null
+        setSession(null)
+        setStatus('local')
+        return
+      }
       enqueueSync(stateRef.current, current.revision)
       setStatus('error')
     }
@@ -105,13 +113,19 @@ export function useAccountSync(
         setStatus('error')
         throw error
       }
-      setSession(next)
       sessionRef.current = next
+      const stateToImport =
+        mode === 'register'
+          ? { ...stateRef.current, displayName: input.displayName.trim() || next.user.displayName }
+          : stateRef.current
+      stateRef.current = stateToImport
+      if (stateToImport !== state) replaceState(stateToImport)
       try {
-        const snapshot = await pushState(next, stateRef.current, true)
+        const snapshot = await pushState(next, stateToImport, true)
         applySnapshot(next, snapshot)
       } catch {
-        enqueueSync(stateRef.current, next.revision)
+        setSession(next)
+        enqueueSync(stateToImport, next.revision)
         setStatus(navigator.onLine ? 'error' : 'offline')
       }
     },

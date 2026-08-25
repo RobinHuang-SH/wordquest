@@ -14,6 +14,7 @@ export type User = {
 
 export type DailySession = {
   date: string
+  batch: number
   learned: Record<string, Knowledge>
   learnedCount: number
   newCount: number
@@ -28,6 +29,7 @@ export type DailySession = {
 export type DailyWordPlan = {
   sessionId: string
   date: string
+  batch: number
   mix: WordMix
   words: Word[]
   newCount: number
@@ -98,6 +100,7 @@ export type WeeklyReport = {
 }
 
 export type AppState = User & {
+  schemaVersion: number
   onboarded: boolean
   learned: Record<string, Knowledge>
   currentWord: number
@@ -112,6 +115,8 @@ export type AppState = User & {
   highContrast: boolean
   reducedMotion: boolean
   activeDate: string
+  activeBatch: number
+  extraStudyUsedOn: string | null
   dailyWordPlan: DailyWordPlan | null
   dailyStory: DailyStory | null
   sessions: Record<string, DailySession>

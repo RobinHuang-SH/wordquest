@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { todayWords } from '../data'
 import { makeState } from '../test/factories'
-import { getQuizScore, getReviewCount, getSessionWords, quizQuestions } from './learning'
+import {
+  getQuizQuestions,
+  getQuizScore,
+  getNewWords,
+  getReviewWords,
+  getReviewCount,
+  getSessionWords,
+  quizQuestions,
+} from './learning'
 
 describe('quiz scoring', () => {
   it('scores five correct answers as 100', () => {
@@ -17,6 +25,31 @@ describe('quiz scoring', () => {
 
   it('ignores wrong and out-of-range answers', () => {
     expect(getQuizScore({ 0: 'wrong', 99: 'anything' })).toBe(0)
+  })
+
+  it('builds the quiz from an active server-generated word plan', () => {
+    const words = todayWords.slice(0, 5).map((word, index) => ({
+      ...word,
+      id: `word-${index}`,
+      word: `adaptive-${index}`,
+      meaning: `动态释义 ${index}`,
+    }))
+    const state = makeState({
+      dailyWordPlan: {
+        sessionId: 'session-1',
+        date: '2026-07-12',
+        batch: 1,
+        mix: 'dynamic',
+        words,
+        newCount: 5,
+        reviewCount: 0,
+      },
+    })
+
+    const questions = getQuizQuestions(state)
+    expect(questions).toHaveLength(5)
+    expect(questions.map((question) => question.word)).toEqual(words.map((word) => word.word))
+    expect(getQuizScore({ 0: questions[0].answer }, questions)).toBe(20)
   })
 })
 
@@ -41,11 +74,9 @@ describe('session word selection', () => {
     ).toBe(10)
   })
 
-  it('always returns exactly twenty words with the requested review split', () => {
+  it('does not reuse the fixed demo list before an authenticated plan arrives', () => {
     const words = getSessionWords(makeState({ wordMix: '10+10' }))
-    expect(words).toHaveLength(20)
-    expect(words.filter((word) => word.review)).toHaveLength(10)
-    expect(new Set(words.map((word) => word.word))).toHaveLength(20)
+    expect(words).toEqual([])
   })
 
   it('prefers a server-generated plan for the active date', () => {
@@ -54,6 +85,7 @@ describe('session word selection', () => {
       dailyWordPlan: {
         sessionId: 'session-1',
         date: '2026-07-12',
+        batch: 1,
         mix: 'dynamic',
         words: [serverWord],
         newCount: 0,
@@ -63,6 +95,8 @@ describe('session word selection', () => {
 
     expect(getSessionWords(state)).toEqual([serverWord])
     expect(getReviewCount(state)).toBe(1)
+    expect(getNewWords(state)).toEqual([])
+    expect(getReviewWords(state)).toEqual([serverWord])
   })
 
   it('ignores a stale server plan after the active date changes', () => {
@@ -71,6 +105,7 @@ describe('session word selection', () => {
       dailyWordPlan: {
         sessionId: 'session-1',
         date: '2026-07-12',
+        batch: 1,
         mix: '15+5',
         words: [{ ...todayWords[0], word: 'stale' }],
         newCount: 15,
@@ -78,7 +113,6 @@ describe('session word selection', () => {
       },
     })
 
-    expect(getSessionWords(state)).toHaveLength(20)
-    expect(getSessionWords(state).some((word) => word.word === 'stale')).toBe(false)
+    expect(getSessionWords(state)).toEqual([])
   })
 })

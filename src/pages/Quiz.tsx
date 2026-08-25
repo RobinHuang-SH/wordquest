@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, ArrowRight, CheckCircle2, Headphones, Trophy } from 'lucide-react'
 import type { AppState, Page } from '../domain/models'
-import { quizQuestions } from '../domain/learning'
+import { getNewWords, getQuizQuestions, getQuizScore } from '../domain/learning'
 import { speak } from '../services/speech'
 
 export function Quiz({
@@ -14,30 +14,37 @@ export function Quiz({
   setPage: (p: Page) => void
 }) {
   const [q, setQ] = useState(0)
-  const item = quizQuestions[q]
+  const questions = getQuizQuestions(state)
+  const targetWordCount = getNewWords(state).length
+  const item = questions[q]
   const selected = state.quizAnswers[q]
   const correct = Object.entries(state.quizAnswers).filter(
-    ([i, a]) => quizQuestions[+i]?.answer === a,
+    ([i, a]) => questions[+i]?.answer === a,
   ).length
+  const score = getQuizScore(state.quizAnswers, questions)
   if (state.quizDone)
     return (
       <div className="page centered-page">
         <div className="result-card">
           <div className="result-ring">
             <Trophy />
-            <strong>{correct * 20}</strong>
+            <strong>{score}</strong>
             <span>分</span>
           </div>
           <p className="eyebrow">测试完成</p>
           <h1>做得很好，故事已解锁！</h1>
-          <p>你已经为今天的 20 个词建立了第一层记忆。接下来，把它们放进真实语境里。</p>
+          <p>
+            你已经为今天的 {targetWordCount} 个词建立了第一层记忆。接下来，把它们放进真实语境里。
+          </p>
           <div className="result-stats">
             <div>
-              <b>{correct}/5</b>
+              <b>
+                {correct}/{questions.length}
+              </b>
               <span>答对题数</span>
             </div>
             <div>
-              <b>20</b>
+              <b>{targetWordCount}</b>
               <span>故事目标词</span>
             </div>
             <div>
@@ -74,12 +81,14 @@ export function Quiz({
             role="progressbar"
             aria-label="小测进度"
             aria-valuemin={1}
-            aria-valuemax={5}
+            aria-valuemax={questions.length}
             aria-valuenow={q + 1}
           >
-            <i style={{ width: `${((q + 1) / 5) * 100}%` }} />
+            <i style={{ width: `${((q + 1) / questions.length) * 100}%` }} />
           </div>
-          <b>{q + 1} / 5</b>
+          <b>
+            {q + 1} / {questions.length}
+          </b>
         </div>
         <button className="text-button" onClick={() => patch({ quizDone: true })}>
           暂时跳过
@@ -115,9 +124,9 @@ export function Quiz({
           <span aria-live="polite">{selected ? '已选择答案' : '请选择一个答案'}</span>
           <button
             disabled={!selected}
-            onClick={() => (q < 4 ? setQ(q + 1) : patch({ quizDone: true }))}
+            onClick={() => (q < questions.length - 1 ? setQ(q + 1) : patch({ quizDone: true }))}
           >
-            {q < 4 ? '下一题' : '查看结果'}
+            {q < questions.length - 1 ? '下一题' : '查看结果'}
             <ArrowRight />
           </button>
         </div>

@@ -11,6 +11,11 @@ export type StoryValidationIssueCode =
   | 'OUT_OF_LEVEL_WORDS'
   | 'DIFFICULTY_TOO_HIGH'
   | 'CONTINUITY_MISMATCH'
+  | 'CHARACTER_CONTINUITY_MISMATCH'
+  | 'LOCATION_CONTINUITY_MISMATCH'
+  | 'OPEN_THREADS_CONTINUITY_MISMATCH'
+  | 'CHOICE_CONSEQUENCE_MISSING'
+  | 'MISSING_CHINESE_TRANSLATION'
   | 'EMPTY_STORY_STATE'
   | 'DUPLICATE_CHOICES'
 
@@ -155,8 +160,20 @@ export function validateGeneratedStory(input: {
   vocabularyCatalog: StoryVocabularyEntry[]
   targetLevel: string
   previousChoice?: string
+  previousState?: Record<string, unknown> | null
+  protagonist?: string
+  previousChoiceContinuation?: string
 }): StoryValidationReport {
-  const { story, targetWords, vocabularyCatalog, targetLevel, previousChoice } = input
+  const {
+    story,
+    targetWords,
+    vocabularyCatalog,
+    targetLevel,
+    previousChoice,
+    previousState,
+    protagonist,
+    previousChoiceContinuation,
+  } = input
   const storyTokens = story.paragraphs.flatMap((paragraph) => tokenizeEnglish(paragraph.en))
   const tokenCandidates = storyTokens.map((token) => ({
     token,
@@ -181,7 +198,22 @@ export function validateGeneratedStory(input: {
     .map((entry) => entry.word)
     .filter((word) => !coveredSet.has(normalizeWord(word)))
 
+  const textList = (value: unknown) =>
+    Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      : []
   const targetAliasSet = new Set(targetAliases.flatMap(({ aliases }) => [...aliases]))
+  const continuityAliasSet = new Set(
+    [
+      protagonist ?? '',
+      typeof previousState?.location === 'string' ? previousState.location : '',
+      ...textList(previousState?.characters),
+      ...textList(previousState?.openThreads),
+      previousChoiceContinuation ?? '',
+    ]
+      .flatMap(tokenizeEnglish)
+      .flatMap(lemmaCandidates),
+  )
   const catalogByAlias = new Map<string, StoryVocabularyEntry>()
   for (const entry of vocabularyCatalog) {
     catalogByAlias.set(normalizeWord(entry.word), entry)
@@ -189,7 +221,12 @@ export function validateGeneratedStory(input: {
   }
   const outOfLevel = new Map<string, { word: string; level: string }>()
   for (const { token, candidates } of tokenCandidates) {
-    if (candidates.some((candidate) => targetAliasSet.has(candidate))) continue
+    if (
+      candidates.some(
+        (candidate) => targetAliasSet.has(candidate) || continuityAliasSet.has(candidate),
+      )
+    )
+      continue
     const entry = candidates.map((candidate) => catalogByAlias.get(candidate)).find(Boolean)
     if (entry && (levelRank[entry.level] ?? 0) > (levelRank[targetLevel] ?? 0))
       outOfLevel.set(entry.lemma, { word: token, level: entry.level })
@@ -201,7 +238,10 @@ export function validateGeneratedStory(input: {
   const averageSentenceLength = sentences.length ? totalSentenceWords / sentences.length : 0
   const maxSentenceLength = Math.max(0, ...sentences.map((sentence) => sentence.count))
   const nonTargetTokens = tokenCandidates.filter(
-    ({ candidates }) => !candidates.some((candidate) => targetAliasSet.has(candidate)),
+    ({ candidates }) =>
+      !candidates.some(
+        (candidate) => targetAliasSet.has(candidate) || continuityAliasSet.has(candidate),
+      ),
   )
   const longWordCount = nonTargetTokens.filter(
     ({ token }) => token.replace(/[^a-z]/g, '').length >= 9,
@@ -220,9 +260,84 @@ export function validateGeneratedStory(input: {
     maxSentenceLength <= limits.maxSentenceLength &&
     longWordRatio <= limits.longWordRatio
 
-  const continuityRequired = Boolean(previousChoice)
+  const normalizeStateText = (value: string) => value.trim().toLocaleLowerCase()
+  const previousCharacters = textList(previousState?.characters)
+  const requiredCharacters = [
+    ...new Set(
+      [...previousCharacters, protagonist]
+        .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+        .map((item) => item.trim()),
+    ),
+  ]
+  const beforeCharacters = textList(story.stateBefore.characters).map(normalizeStateText)
+  const afterCharacters = textList(story.stateAfter.characters).map(normalizeStateText)
+  const characterContinuityPassed = requiredCharacters.every(
+    (character) =>
+      beforeCharacters.includes(normalizeStateText(character)) &&
+      afterCharacters.includes(normalizeStateText(character)),
+  )
+  const previousLocation =
+    typeof previousState?.location === 'string' ? previousState.location.trim() : ''
+  const beforeLocation =
+    typeof story.stateBefore.location === 'string' ? story.stateBefore.location.trim() : ''
+  const locationContinuityPassed =
+    !previousLocation || normalizeStateText(beforeLocation) === normalizeStateText(previousLocation)
+  const previousThreads = textList(previousState?.openThreads)
+  const beforeThreads = textList(story.stateBefore.openThreads).map(normalizeStateText)
+  const openThreadsContinuityPassed = previousThreads.every((thread) =>
+    beforeThreads.includes(normalizeStateText(thread)),
+  )
+  const continuityStopWords = new Set([
+    'about',
+    'after',
+    'again',
+    'along',
+    'before',
+    'choice',
+    'continues',
+    'enters',
+    'from',
+    'into',
+    'looks',
+    'moves',
+    'takes',
+    'that',
+    'their',
+    'there',
+    'they',
+    'this',
+    'toward',
+    'walks',
+    'with',
+  ])
+  const consequenceTerms = previousChoiceContinuation
+    ? tokenizeEnglish(previousChoiceContinuation).filter(
+        (word) =>
+          word.length >= 4 &&
+          !continuityStopWords.has(word) &&
+          normalizeStateText(word) !== normalizeStateText(protagonist ?? ''),
+      )
+    : []
+  const firstParagraphTokens = new Set(
+    tokenizeEnglish(story.paragraphs[0]?.en ?? '').flatMap(lemmaCandidates),
+  )
+  const choiceConsequencePassed =
+    consequenceTerms.length === 0 ||
+    consequenceTerms.some((term) =>
+      lemmaCandidates(term).some((candidate) => firstParagraphTokens.has(candidate)),
+    )
+  const continuityRequired = Boolean(previousChoice || previousState || protagonist)
+  const choiceContinuityPassed =
+    !previousChoice || story.stateBefore.previousChoice === previousChoice
   const continuityPassed =
-    !continuityRequired || story.stateBefore.previousChoice === previousChoice
+    choiceContinuityPassed &&
+    characterContinuityPassed &&
+    locationContinuityPassed &&
+    openThreadsContinuityPassed &&
+    choiceConsequencePassed
+  const chineseTranslationPassed =
+    /[\u3400-\u9fff]/.test(story.titleZh) &&
+    story.paragraphs.every((paragraph) => /[\u3400-\u9fff]/.test(paragraph.zh))
   const statePassed = Object.keys(story.stateAfter).length > 0
   const normalizedChoices = story.choices.map((choice) =>
     normalizedChoiceText(`${choice.title} ${choice.en} ${choice.continuationSummary}`),
@@ -252,10 +367,40 @@ export function validateGeneratedStory(input: {
       message: `Story sentence or word complexity is above the ${targetLevel} limit.`,
       paragraphIndexes: longParagraphIndexes,
     })
-  if (!continuityPassed)
+  if (!choiceContinuityPassed)
     issues.push({
       code: 'CONTINUITY_MISMATCH',
       message: 'stateBefore.previousChoice does not match the selected previous choice.',
+    })
+  if (!characterContinuityPassed)
+    issues.push({
+      code: 'CHARACTER_CONTINUITY_MISMATCH',
+      message: `Core characters must keep their exact names in stateBefore and stateAfter: ${requiredCharacters.join(', ')}.`,
+      words: requiredCharacters,
+    })
+  if (!locationContinuityPassed)
+    issues.push({
+      code: 'LOCATION_CONTINUITY_MISMATCH',
+      message: `The chapter must begin at the previous location: ${previousLocation}.`,
+    })
+  if (!openThreadsContinuityPassed)
+    issues.push({
+      code: 'OPEN_THREADS_CONTINUITY_MISMATCH',
+      message: 'stateBefore must preserve every unresolved thread from the previous chapter.',
+      words: previousThreads,
+    })
+  if (!choiceConsequencePassed)
+    issues.push({
+      code: 'CHOICE_CONSEQUENCE_MISSING',
+      message:
+        'The first paragraph must show a concrete consequence of the learner’s selected previous choice.',
+      words: consequenceTerms,
+      paragraphIndexes: [0],
+    })
+  if (!chineseTranslationPassed)
+    issues.push({
+      code: 'MISSING_CHINESE_TRANSLATION',
+      message: 'Chinese title and paragraph translations must contain Chinese text.',
     })
   if (!statePassed)
     issues.push({
@@ -294,7 +439,8 @@ export function buildStoryRepairPrompt(input: {
   const affectedParagraphs = [
     ...new Set(input.report.issues.flatMap((issue) => issue.paragraphIndexes ?? [])),
   ]
-  return `${input.originalPrompt}\n\nThe draft failed deterministic validation. Rewrite only the affected English sentences or choices when possible, but return the complete bilingual story JSON. Preserve valid plot details and choice IDs. Ensure every target word appears naturally in paragraphs, remove words above the requested CEFR level unless they are target words, keep sentences short, copy previousChoice exactly into stateBefore.previousChoice, and keep three genuinely different choices.\nValidation issues: ${JSON.stringify(input.report.issues)}\nAffected paragraph indexes (zero based): ${JSON.stringify(affectedParagraphs)}\nDraft JSON: ${JSON.stringify(input.story)}`
+  const missingTargetWords = input.report.targetWords.missing
+  return `${input.originalPrompt}\n\nThe draft failed deterministic validation. Rewrite only the affected English sentences, Chinese translations, continuity state, or choices when possible, but return the complete bilingual story JSON. Preserve valid plot details and choice IDs. Ensure every target word appears naturally in English paragraphs, write titleZh and every zh paragraph in natural Simplified Chinese, remove words above the requested CEFR level unless they are target words, keep sentences short, copy previousChoice exactly into stateBefore.previousChoice, preserve the exact core character names, begin at the previous location, carry forward every unresolved thread in stateBefore, and keep three genuinely different choices.\nMandatory missing words that must be inserted with this exact spelling into English paragraphs: ${missingTargetWords.length ? missingTargetWords.join(', ') : 'none'}\nDo not claim a missing word in vocabularyCoverage unless it is visibly present in an English paragraph. Silently check every mandatory word and every continuity constraint before returning the complete JSON.\nValidation issues: ${JSON.stringify(input.report.issues)}\nAffected paragraph indexes (zero based): ${JSON.stringify(affectedParagraphs)}\nDraft JSON: ${JSON.stringify(input.story)}`
 }
 
 export function parseStoredValidationReport(value: unknown): StoryValidationReport | null {

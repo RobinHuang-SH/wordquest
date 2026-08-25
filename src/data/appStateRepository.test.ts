@@ -92,6 +92,37 @@ describe('state migrations', () => {
     expect(migrated.dailyStory).toBeNull()
   })
 
+  it('adds the daily extra-study marker when migrating a version 6 snapshot', () => {
+    const migrated = migrateAppState({
+      version: 6,
+      state: { displayName: 'Ava', activeDate: '2026-07-12' },
+    })
+
+    expect(migrated.extraStudyUsedOn).toBeNull()
+  })
+
+  it('clears an old daily plan once and preserves current synced stories afterwards', () => {
+    const old = migrateAppState({
+      version: 7,
+      state: {
+        displayName: 'Ava',
+        activeDate: '2026-07-12',
+        dailyWordPlan: { sessionId: 'old-plan' } as never,
+        dailyStory: { sessionId: 'old-story' } as never,
+      },
+    })
+    expect(old.dailyWordPlan).toBeNull()
+    expect(old.dailyStory).toBeNull()
+
+    const currentStory = { sessionId: 'current-story' } as never
+    const current = migrateAppState({
+      ...makeState(),
+      schemaVersion: APP_STATE_SCHEMA_VERSION,
+      dailyStory: currentStory,
+    })
+    expect(current.dailyStory).toBe(currentStory)
+  })
+
   it('converts a legacy completed day into a session', () => {
     const migrated = migrateAppState({
       onboarded: true,

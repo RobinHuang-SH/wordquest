@@ -10,7 +10,6 @@ import {
   Volume2,
 } from 'lucide-react'
 import type { AppState } from '../domain/models'
-import { getReviewCount } from '../domain/learning'
 import { Logo } from '../components/AppShell'
 
 export function Onboarding({
@@ -101,7 +100,9 @@ export function Onboarding({
           <>
             <p className="eyebrow">第三步 · 学习偏好</p>
             <h1>最后，调好你的节奏</h1>
-            <p className="subtext">默认每天 20 个目标词，学习比例和时长之后也能随时调整。</p>
+            <p className="subtext">
+              每组固定学习 20 个新词，到期复习词会单独追加，想学几组都可以。
+            </p>
             <div className="preference-list">
               <div>
                 <span>
@@ -137,9 +138,7 @@ export function Onboarding({
                   <Sparkles />
                   智能安排
                 </span>
-                <strong>
-                  {20 - getReviewCount(state)} 新词 + {getReviewCount(state)} 复习
-                </strong>
+                <strong>每组 20 个新词 + 到期复习</strong>
               </div>
             </div>
           </>
@@ -164,7 +163,7 @@ export function Onboarding({
       </div>
       <p className="privacy">
         <LockKeyhole size={14} />
-        学习数据默认只保存在你的浏览器中
+        学习数据会通过你的账户安全同步
       </p>
     </div>
   )

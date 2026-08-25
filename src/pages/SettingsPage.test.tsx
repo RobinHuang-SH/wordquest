@@ -50,6 +50,16 @@ function renderSettings(initialState: Partial<AppState> = {}, onShowShortcuts = 
 }
 
 describe('SettingsPage', () => {
+  it('renders readable account and synchronization controls', () => {
+    renderSettings()
+
+    expect(screen.getByRole('heading', { name: '账户与同步' })).toBeVisible()
+    expect(screen.getByRole('button', { name: '登录' })).toBeVisible()
+    expect(screen.getByRole('button', { name: '注册' })).toBeVisible()
+    expect(screen.getByRole('textbox', { name: '邮箱地址' })).toBeVisible()
+    expect(screen.getByLabelText('账户密码')).toBeVisible()
+  })
+
   it('updates and normalizes the learner display name', async () => {
     const user = userEvent.setup()
     const { patchSpy } = renderSettings({ displayName: 'Mia' })

@@ -36,12 +36,22 @@ const choices = [
 function story(paragraphs: string[], previousChoice = 'wait-here'): GeneratedStory {
   return {
     title: 'The Blue Door',
-    titleZh: 'The Blue Door',
+    titleZh: '蓝色的门',
     summary: 'Mia finds a door.',
-    paragraphs: paragraphs.map((en) => ({ en, zh: 'A translated paragraph.' })),
+    paragraphs: paragraphs.map((en) => ({ en, zh: '这是对应的中文翻译。' })),
     choices,
-    stateBefore: previousChoice ? { previousChoice } : {},
-    stateAfter: { location: 'blue door', openThreads: ['the hidden bell'] },
+    stateBefore: {
+      previousChoice: previousChoice || null,
+      location: 'old station',
+      characters: ['Mia', 'Leo'],
+      openThreads: ['the glowing map'],
+    },
+    stateAfter: {
+      previousChoice: previousChoice || null,
+      location: 'blue door',
+      characters: ['Mia', 'Leo'],
+      openThreads: ['the hidden bell'],
+    },
     vocabularyCoverage: [],
   }
 }
@@ -136,9 +146,25 @@ describe('story validation', () => {
     )
   })
 
+  it('rejects stories whose translated fields contain no Chinese text', () => {
+    const draft = story(['Mia found a signal.'])
+    draft.titleZh = 'The Signal'
+    draft.paragraphs[0].zh = 'Mia found a signal.'
+    const report = validateGeneratedStory({
+      story: draft,
+      targetWords: [entry('signal')],
+      vocabularyCatalog: [entry('signal')],
+      targetLevel: 'A2',
+      previousChoice: 'wait-here',
+    })
+
+    expect(report.passed).toBe(false)
+    expect(report.issues.map((issue) => issue.code)).toContain('MISSING_CHINESE_TRANSLATION')
+  })
+
   it('detects excessive sentence length, broken continuity, and duplicate plot choices', () => {
     const draft = story([`Mia ${Array.from({ length: 25 }, () => 'walked').join(' ')} home.`])
-    draft.stateBefore = { previousChoice: 'wrong-choice' }
+    draft.stateBefore.previousChoice = 'wrong-choice'
     draft.choices = choices.map((choice, index) => ({
       ...choice,
       id: `choice-${index}`,
@@ -156,6 +182,44 @@ describe('story validation', () => {
     expect(report.choices.passed).toBe(false)
     expect(report.issues.map((issue) => issue.code)).toEqual(
       expect.arrayContaining(['DIFFICULTY_TOO_HIGH', 'CONTINUITY_MISMATCH', 'DUPLICATE_CHOICES']),
+    )
+  })
+
+  it('rejects renamed characters, changed starting locations, and dropped open threads', () => {
+    const draft = story(['Mia discovered a signal beside the door.'])
+    draft.stateBefore = {
+      previousChoice: 'wait-here',
+      location: 'new city',
+      characters: ['Mia', 'Leon'],
+      openThreads: [],
+    }
+    draft.stateAfter = {
+      previousChoice: 'wait-here',
+      location: 'new city',
+      characters: ['Mia', 'Leon'],
+      openThreads: [],
+    }
+    const report = validateGeneratedStory({
+      story: draft,
+      targetWords: [entry('signal')],
+      vocabularyCatalog: [entry('signal')],
+      targetLevel: 'B1',
+      previousChoice: 'wait-here',
+      previousState: {
+        location: 'old station',
+        characters: ['Mia', 'Leo'],
+        openThreads: ['the glowing map'],
+      },
+      protagonist: 'Mia',
+    })
+
+    expect(report.passed).toBe(false)
+    expect(report.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        'CHARACTER_CONTINUITY_MISMATCH',
+        'LOCATION_CONTINUITY_MISMATCH',
+        'OPEN_THREADS_CONTINUITY_MISMATCH',
+      ]),
     )
   })
 

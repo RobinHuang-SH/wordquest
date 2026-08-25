@@ -2,6 +2,7 @@ const VERSION = __WORDQUEST_VERSION__
 const PRECACHE = 'wordquest-precache-' + VERSION
 const RUNTIME = 'wordquest-runtime-' + VERSION
 const APP_SHELL = __WORDQUEST_APP_SHELL__
+const BASE_PATH = __WORDQUEST_BASE_PATH__
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(PRECACHE).then((cache) => cache.addAll(APP_SHELL)))
@@ -44,8 +45,8 @@ async function handleNavigation(request) {
   } catch {
     return (
       (await caches.match(request, { ignoreVary: true })) ||
-      (await caches.match('/index.html', { ignoreVary: true })) ||
-      (await caches.match('/', { ignoreVary: true })) ||
+      (await caches.match(BASE_PATH + 'index.html', { ignoreVary: true })) ||
+      (await caches.match(BASE_PATH, { ignoreVary: true })) ||
       Response.error()
     )
   }
@@ -64,7 +65,11 @@ async function handleAsset(request) {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url)
-  if (event.request.method !== 'GET' || url.origin !== self.location.origin) return
+  const bypassCache =
+    url.pathname.startsWith(BASE_PATH + 'api/') ||
+    url.pathname.startsWith(BASE_PATH + 'docs') ||
+    event.request.headers.has('authorization')
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin || bypassCache) return
   event.respondWith(
     event.request.mode === 'navigate'
       ? handleNavigation(event.request)

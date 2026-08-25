@@ -5,6 +5,7 @@ import { ApiError } from './api-error.js'
 import type { AuthResult, AuthService, AuthUser } from './contracts.js'
 
 const SESSION_DAYS = 30
+const LAST_USED_WRITE_INTERVAL_MS = 15 * 60 * 1000
 const normalizeEmail = (email: string) => email.trim().toLowerCase()
 const publicUser = (user: { id: string; email: string; displayName: string }): AuthUser => ({
   id: user.id,
@@ -24,10 +25,10 @@ export class PrismaAuthService implements AuthService {
   }): Promise<AuthResult> {
     const email = normalizeEmail(input.email)
     const existing = await this.prisma.user.findUnique({ where: { email } })
-    if (existing) throw new ApiError(409, 'EMAIL_ALREADY_REGISTERED', '??????')
+    if (existing) throw new ApiError(409, 'EMAIL_ALREADY_REGISTERED', '该邮箱已注册')
     const passwordHash = await hashPassword(input.password)
     const user = await this.prisma.user.create({
-      data: { email, passwordHash, displayName: input.displayName.trim() || '???' },
+      data: { email, passwordHash, displayName: input.displayName.trim() || '学习者' },
     })
     return this.createSession(user, input.deviceId, input.userAgent)
   }
@@ -42,7 +43,7 @@ export class PrismaAuthService implements AuthService {
       where: { email: normalizeEmail(input.email) },
     })
     if (!user?.passwordHash || !(await verifyPassword(input.password, user.passwordHash))) {
-      throw new ApiError(401, 'INVALID_CREDENTIALS', '???????')
+      throw new ApiError(401, 'INVALID_CREDENTIALS', '邮箱或密码不正确')
     }
     return this.createSession(user, input.deviceId, input.userAgent)
   }
@@ -52,12 +53,14 @@ export class PrismaAuthService implements AuthService {
       where: { tokenHash: hashSessionToken(token) },
       include: { user: true },
     })
-    if (!session || session.revokedAt || session.expiresAt <= new Date())
-      throw new ApiError(401, 'AUTH_REQUIRED', '???????????')
-    await this.prisma.authSession.update({
-      where: { id: session.id },
-      data: { lastUsedAt: new Date() },
-    })
+    const now = new Date()
+    if (!session || session.revokedAt || session.expiresAt <= now)
+      throw new ApiError(401, 'AUTH_REQUIRED', '登录状态已失效，请重新登录')
+    if (now.getTime() - session.lastUsedAt.getTime() >= LAST_USED_WRITE_INTERVAL_MS)
+      await this.prisma.authSession.update({
+        where: { id: session.id },
+        data: { lastUsedAt: now },
+      })
     return publicUser(session.user)
   }
 

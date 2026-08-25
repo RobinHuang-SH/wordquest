@@ -17,6 +17,18 @@ export type GeneratedStory = {
   vocabularyCoverage: string[]
 }
 
+const storyStateSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['previousChoice', 'location', 'characters', 'openThreads'],
+  properties: {
+    previousChoice: { type: ['string', 'null'] },
+    location: { type: 'string' },
+    characters: { type: 'array', items: { type: 'string' } },
+    openThreads: { type: 'array', items: { type: 'string' } },
+  },
+} as const
+
 export const generatedStoryJsonSchema = {
   type: 'object',
   additionalProperties: false,
@@ -65,8 +77,8 @@ export const generatedStoryJsonSchema = {
         },
       },
     },
-    stateBefore: { type: 'object', additionalProperties: true },
-    stateAfter: { type: 'object', additionalProperties: true },
+    stateBefore: storyStateSchema,
+    stateAfter: storyStateSchema,
     vocabularyCoverage: {
       type: 'array',
       items: { type: 'string', minLength: 1 },

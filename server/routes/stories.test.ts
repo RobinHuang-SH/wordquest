@@ -25,7 +25,12 @@ const auth: AuthService = {
   logout: vi.fn(),
   authenticate: vi.fn(async () => ({ id: 'user-1', email: 'mia@example.com', displayName: 'Mia' })),
 }
-const sync: SyncService = { getState: vi.fn(), updateState: vi.fn(), listConflicts: vi.fn() }
+const sync: SyncService = {
+  getState: vi.fn(),
+  importState: vi.fn(),
+  updateState: vi.fn(),
+  listConflicts: vi.fn(),
+}
 const vocabulary: VocabularyService = { getDailyPlan: vi.fn(), reviewWord: vi.fn() }
 const sessionId = '00000000-0000-4000-8000-000000000003'
 const story: StoryService = {
@@ -34,9 +39,9 @@ const story: StoryService = {
     storyNodeId: '00000000-0000-4000-8000-000000000004',
     date: '2026-07-13',
     title: 'The Blue Door',
-    titleZh: 'The Blue Door',
+    titleZh: '蓝色的门',
     summary: 'Mia finds a door.',
-    paragraphs: [{ en: 'Mia discovered a door.', zh: 'Mia found a door.' }],
+    paragraphs: [{ en: 'Mia discovered a door.', zh: '米娅发现了一扇门。' }],
     choices: [
       {
         id: 'open-door',

@@ -13,6 +13,7 @@ export function makeState(overrides: Partial<AppState> = {}): AppState {
 export function makeSession(overrides: Partial<DailySession> = {}): DailySession {
   return {
     date: '2026-07-12',
+    batch: 1,
     learned: {},
     learnedCount: 20,
     newCount: 15,

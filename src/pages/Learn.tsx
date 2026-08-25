@@ -35,7 +35,7 @@ import {
   X,
 } from 'lucide-react'
 import type { AppState, Knowledge, Page, Word } from '../domain/models'
-import { getReviewCount, getSessionWords } from '../domain/learning'
+import { getNewWords, getSessionWords } from '../domain/learning'
 import { speak } from '../services/speech'
 
 export function Learn({
@@ -52,6 +52,8 @@ export function Learn({
   onReviewWord?: (word: Word, knowledge: Knowledge) => void
 }) {
   const sessionWords = getSessionWords(state)
+  const newWords = getNewWords(state)
+  const newWordCount = newWords.length
   const total = sessionWords.length
   const index = Math.min(state.currentWord, Math.max(0, total - 1)),
     word = sessionWords[index]
@@ -65,7 +67,15 @@ export function Learn({
     const next = Math.min(total - 1, index + 1)
     patch({ learned, currentWord: next })
     onReviewWord?.(word, v)
-    if (index === total - 1) notify('20 个目标词已完成，测试已解锁！')
+    const allNewWordsLearned = newWords.every(
+      (candidate) => candidate.word === word.word || Boolean(learned[candidate.word]),
+    )
+    if (
+      allNewWordsLearned &&
+      !newWords.every((candidate) => Boolean(state.learned[candidate.word]))
+    )
+      notify('20 个新词已完成，正在为你生成新故事！')
+    else if (index === total - 1) notify('今天的复习词也完成了！')
   }
   const startRecord = async () => {
     if (recording) {
@@ -89,6 +99,20 @@ export function Learn({
       notify('请允许浏览器使用麦克风')
     }
   }
+  if (!word)
+    return (
+      <div className="page centered-page">
+        <div className="locked-card">
+          <BookOpen />
+          <p className="eyebrow">每日词汇</p>
+          <h1>正在准备 20 个新词…</h1>
+          <p>词汇计划准备好后会自动显示，请保持网络连接。</p>
+          <button className="primary" onClick={() => setPage('home')}>
+            返回今日首页
+          </button>
+        </div>
+      </div>
+    )
   return (
     <div className="page learn-page">
       <header className="learn-top">
@@ -97,7 +121,7 @@ export function Learn({
           返回今日
         </button>
         <div className="lesson-progress">
-          <span>单词学习</span>
+          <span>{index < newWordCount ? '新词学习' : '到期复习'}</span>
           <div
             className="progress-track"
             role="progressbar"
@@ -118,7 +142,7 @@ export function Learn({
       </header>
       <div className="learn-layout">
         <aside className="word-rail">
-          <p>今日目标</p>
+          <p>20 个新词{total > newWordCount ? ` + ${total - newWordCount} 个复习` : ''}</p>
           {sessionWords.map((w, i) => (
             <button
               key={w.word}

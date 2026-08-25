@@ -72,8 +72,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
       servers: [{ url: config.API_BASE_URL, description: config.NODE_ENV }],
       components: { securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer' } } },
       tags: [
-        { name: 'auth', description: '???????' },
-        { name: 'sync', description: '????????????' },
+        { name: 'auth', description: '账户注册、登录与会话' },
+        { name: 'sync', description: '跨设备学习状态同步与冲突记录' },
         { name: 'system', description: '服务状态与 API 元信息' },
         { name: 'daily-session', description: '每日学习任务' },
         { name: 'words', description: '词汇与学习结果' },
@@ -102,20 +102,27 @@ export async function buildApp(options: BuildAppOptions = {}) {
   const getPrisma = () => (prisma ??= createPrismaClient(config.DATABASE_URL))
   const authService = options.authService ?? new PrismaAuthService(getPrisma())
   const syncService = options.syncService ?? new PrismaSyncService(getPrisma())
-  const vocabularyService = options.vocabularyService ?? new PrismaVocabularyService(getPrisma())
-  const modelClient = config.LLM_API_KEY
+  const storyModelApiKey = config.LLM_API_KEY || config.AGNES_API_KEY
+  const modelClient = storyModelApiKey
     ? new OpenAiCompatibleStoryModelClient({
-        apiKey: config.LLM_API_KEY,
+        apiKey: storyModelApiKey,
         baseUrl: config.LLM_BASE_URL,
         model: config.LLM_MODEL,
+        apiStyle: config.LLM_API_STYLE,
+        provider: config.LLM_PROVIDER,
+        outputMode: config.LLM_OUTPUT_MODE,
       })
     : null
+  const vocabularyService =
+    options.vocabularyService ??
+    new PrismaVocabularyService(getPrisma(), modelClient, config.LLM_TIMEOUT_MS)
   const storyService =
     options.storyService ??
     new PrismaStoryService(getPrisma(), modelClient, {
       timeoutMs: config.LLM_TIMEOUT_MS,
       maxRetries: config.LLM_MAX_RETRIES,
       rateLimitPerMinute: config.LLM_RATE_LIMIT_PER_MINUTE,
+      systemPrompt: config.LLM_SYSTEM_PROMPT || undefined,
     })
   registerAuthRoutes(app, authService)
   registerSyncRoutes(app, authService, syncService)

@@ -16,6 +16,7 @@ export default tseslint.config(
       'test-results',
       'coverage',
       'public/sw.js',
+      'android',
     ],
   },
   eslint.configs.recommended,

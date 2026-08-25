@@ -1,7 +1,6 @@
 import type { WordMix, Knowledge, DailyWordPlan, Word } from '../domain/models'
+import { apiUrl } from './api'
 import type { AccountSession } from './sync'
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001').replace(/\/$/, '')
 
 type ApiPlanWord = {
   id: string
@@ -19,13 +18,14 @@ type ApiPlanWord = {
 type ApiDailyPlan = {
   sessionId: string
   date: string
+  batch: number
   newCount: number
   reviewCount: number
   words: ApiPlanWord[]
 }
 
 async function request<T>(path: string, session: AccountSession, options: RequestInit = {}) {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...options,
     headers: {
       'content-type': 'application/json',
@@ -64,9 +64,10 @@ export async function loadDailyPlan(
   session: AccountSession,
   date: string,
   mix: WordMix,
+  batch = 1,
 ): Promise<DailyWordPlan> {
   const plan = await request<ApiDailyPlan>(
-    `/api/v1/daily-session?date=${encodeURIComponent(date)}&mix=${encodeURIComponent(mix)}`,
+    `/api/v1/daily-session?date=${encodeURIComponent(date)}&mix=${encodeURIComponent(mix)}&batch=${batch}`,
     session,
   )
   return { ...plan, mix, words: plan.words.map(mapPlanWord) }

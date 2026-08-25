@@ -5,6 +5,7 @@ test-results
 coverage
 pnpm-lock.yaml
 public/sw.js
+android
 *.tsbuildinfo
 
 server/generated/prisma/

@@ -2,13 +2,13 @@ import type { AppState } from '../domain/models'
 import {
   createInitialState,
   createDailySession,
+  alignStudyDate,
   getDateKey,
-  resetForNewDay,
 } from '../domain/sessions'
 
 const STORAGE_KEY = 'wordquest-state'
 const BACKUP_KEY = 'wordquest-state-backup'
-export const APP_STATE_SCHEMA_VERSION = 6
+export const APP_STATE_SCHEMA_VERSION = 9
 
 type PersistedEnvelope = { version: number; state: Partial<AppState> }
 type Migration = (state: Partial<AppState>) => Partial<AppState>
@@ -24,6 +24,20 @@ const migrations: Record<number, Migration> = {
   3: (state) => ({ ...state, dailyWordPlan: state.dailyWordPlan ?? null }),
   4: (state) => ({ ...state, dailyStory: state.dailyStory ?? null }),
   5: (state) => ({ ...state, dailyStory: null }),
+  6: (state) => ({ ...state, extraStudyUsedOn: state.extraStudyUsedOn ?? null }),
+  7: (state) => ({ ...state, dailyWordPlan: null, dailyStory: null }),
+  8: (state) => ({
+    ...state,
+    activeBatch: 1,
+    dailyWordPlan: null,
+    dailyStory: null,
+    sessions: Object.fromEntries(
+      Object.entries(state.sessions ?? {}).map(([key, session]) => [
+        key,
+        { ...session, batch: session.batch ?? 1 },
+      ]),
+    ),
+  }),
 }
 
 function unwrapPersistedState(raw: unknown): PersistedEnvelope {
@@ -36,7 +50,14 @@ function unwrapPersistedState(raw: unknown): PersistedEnvelope {
   ) {
     return { version: candidate.version, state: candidate.state as Partial<AppState> }
   }
-  return { version: 0, state: raw as Partial<AppState> }
+  const state = raw as Partial<AppState>
+  const embeddedVersion =
+    typeof state.schemaVersion === 'number'
+      ? state.schemaVersion
+      : 'extraStudyUsedOn' in state
+        ? 7
+        : 0
+  return { version: embeddedVersion, state }
 }
 
 function runMigrations(snapshot: PersistedEnvelope): Partial<AppState> {
@@ -55,18 +76,23 @@ function normalizeState(candidate: Partial<AppState>): AppState {
   const merged = {
     ...initial,
     ...candidate,
+    schemaVersion: APP_STATE_SCHEMA_VERSION,
     activeDate: candidate.activeDate || today,
+    activeBatch: candidate.activeBatch ?? 1,
+    extraStudyUsedOn: candidate.extraStudyUsedOn ?? null,
     dailyWordPlan: candidate.dailyWordPlan ?? null,
     dailyStory: candidate.dailyStory ?? null,
     sessions: candidate.sessions || {},
   } as AppState
-  if (merged.completed && merged.storyChoice && !merged.sessions[merged.activeDate]) {
+  const sessionKey =
+    merged.activeBatch === 1 ? merged.activeDate : `${merged.activeDate}#${merged.activeBatch}`
+  if (merged.completed && merged.storyChoice && !merged.sessions[sessionKey]) {
     merged.sessions = {
       ...merged.sessions,
-      [merged.activeDate]: createDailySession(merged, merged.storyChoice),
+      [sessionKey]: createDailySession(merged, merged.storyChoice),
     }
   }
-  return resetForNewDay(merged, today)
+  return alignStudyDate(merged, today)
 }
 
 function parseState(raw: string) {

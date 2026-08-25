@@ -2,12 +2,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { makeSession, makeState } from '../test/factories'
 import {
   addDays,
+  alignStudyDate,
+  canStartNextBatch,
   completeDailySession,
+  createDailySession,
   createWeeklyReport,
   getDateKey,
   getPreviousSession,
   getWeekDateKeys,
   resetForNewDay,
+  startNextBatch,
 } from './sessions'
 
 afterEach(() => vi.useRealTimers())
@@ -36,6 +40,56 @@ describe('date helpers', () => {
 })
 
 describe('daily sessions', () => {
+  it('records counts from the active server plan and ignores stale learned words', () => {
+    const words = [
+      {
+        id: 'word-1',
+        word: 'observe',
+        phonetic: '/əbˈzɜːrv/',
+        pos: 'v.',
+        meaning: '观察',
+        definition: 'to watch carefully',
+        example: 'Mia observed the signal.',
+        exampleZh: '米娅观察了信号。',
+        collocations: [],
+        level: 'A2',
+        review: false,
+      },
+      {
+        id: 'word-2',
+        word: 'return',
+        phonetic: '/rɪˈtɜːrn/',
+        pos: 'v.',
+        meaning: '返回',
+        definition: 'to go back',
+        example: 'They returned home.',
+        exampleZh: '他们回家了。',
+        collocations: [],
+        level: 'A2',
+        review: true,
+      },
+    ]
+    const state = makeState({
+      learned: { observe: 'know', stale: 'fuzzy' },
+      dailyWordPlan: {
+        sessionId: 'session-1',
+        date: '2026-07-12',
+        batch: 1,
+        mix: 'dynamic',
+        words,
+        newCount: 1,
+        reviewCount: 1,
+      },
+    })
+
+    expect(createDailySession(state, 'follow-light')).toMatchObject({
+      learned: { observe: 'know' },
+      learnedCount: 1,
+      newCount: 1,
+      reviewCount: 1,
+    })
+  })
+
   it('updates the same-day session while preserving its completion timestamp', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-07-12T14:00:00.000Z'))
@@ -76,6 +130,38 @@ describe('daily sessions', () => {
       completed: false,
     })
     expect(reset.sessions['2026-07-11']).toEqual(session)
+  })
+
+  it('allows a completed learner to start unlimited groups on the same day', () => {
+    const state = makeState({ activeDate: '2026-07-12', completed: true })
+
+    expect(canStartNextBatch(state)).toBe(true)
+    const second = startNextBatch(state)
+
+    expect(second).toMatchObject({
+      activeDate: '2026-07-12',
+      activeBatch: 2,
+      completed: false,
+      learned: {},
+      dailyWordPlan: null,
+    })
+    const third = startNextBatch({ ...second, completed: true })
+    expect(third.activeBatch).toBe(3)
+    expect(alignStudyDate(third, '2026-07-12')).toEqual(third)
+  })
+
+  it('restores the real calendar date and first group when the day changes', () => {
+    const previous = makeState({
+      activeDate: '2026-07-13',
+      activeBatch: 4,
+      completed: true,
+    })
+
+    expect(alignStudyDate(previous, '2026-07-12')).toMatchObject({
+      activeDate: '2026-07-12',
+      activeBatch: 1,
+      completed: false,
+    })
   })
 
   it('uses only the exact previous calendar day for story inheritance', () => {

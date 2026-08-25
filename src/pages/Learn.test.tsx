@@ -15,6 +15,7 @@ describe('Learn', () => {
       dailyWordPlan: {
         sessionId: 'session-1',
         date: '2026-07-12',
+        batch: 1,
         mix: '15+5',
         words: [word],
         newCount: 1,

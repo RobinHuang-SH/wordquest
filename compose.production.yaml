@@ -1,0 +1,40 @@
+name: wordquest
+
+services:
+  postgres:
+    image: public.ecr.aws/docker/library/postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wordquest
+      POSTGRES_USER: wordquest
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U wordquest -d wordquest']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - wordquest-postgres:/var/lib/postgresql/data
+    logging:
+      options:
+        max-size: 10m
+        max-file: '3'
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    env_file: .env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '127.0.0.1:3001:3001'
+    logging:
+      options:
+        max-size: 10m
+        max-file: '3'
+
+volumes:
+  wordquest-postgres:

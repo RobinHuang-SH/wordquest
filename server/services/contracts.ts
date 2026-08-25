@@ -44,6 +44,10 @@ export interface SyncService {
     userId: string,
     input: { deviceId: string; baseRevision: number; clientUpdatedAt: string; state: unknown },
   ): Promise<SyncSnapshot>
+  importState(
+    userId: string,
+    input: { deviceId: string; baseRevision: number; clientUpdatedAt: string; state: unknown },
+  ): Promise<SyncSnapshot>
   listConflicts(userId: string): Promise<
     Array<{
       id: string
@@ -72,6 +76,7 @@ export type DailyPlanWord = {
 export type DailyPlan = {
   sessionId: string
   date: string
+  batch: number
   status: string
   newCount: number
   reviewCount: number
@@ -86,7 +91,11 @@ export type WordReviewInput = {
 export interface VocabularyService {
   getDailyPlan(
     userId: string,
-    input: { date: string; mix: '20+0' | '15+5' | '10+10' | 'dynamic' },
+    input: {
+      date: string
+      batch?: number
+      mix: '20+0' | '15+5' | '10+10' | 'dynamic'
+    },
   ): Promise<DailyPlan>
   reviewWord(
     userId: string,

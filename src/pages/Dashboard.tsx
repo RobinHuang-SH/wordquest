@@ -12,6 +12,7 @@ import {
   Cloud,
   Download,
   Flame,
+  FastForward,
   Headphones,
   Home,
   Languages,
@@ -32,10 +33,15 @@ import {
   WandSparkles,
   X,
 } from 'lucide-react'
-import { todayWords } from '../data'
 import type { AppState, DailySession, Page } from '../domain/models'
-import { choiceContinuations, getWeekDateKeys, storyLengthLabels } from '../domain/sessions'
-import { getReviewCount, getSessionWords } from '../domain/learning'
+import {
+  canStartNextBatch,
+  choiceContinuations,
+  formatSessionDate,
+  getWeekDateKeys,
+  storyLengthLabels,
+} from '../domain/sessions'
+import { getNewWords } from '../domain/learning'
 
 export function Dashboard({
   state,
@@ -43,24 +49,23 @@ export function Dashboard({
   previousSession,
   setPage,
   notify,
+  onStartNextBatch,
 }: {
   state: AppState
   learnedCount: number
   previousSession?: DailySession
   setPage: (p: Page) => void
   notify: (s: string) => void
+  onStartNextBatch: () => void
 }) {
+  const nextBatchAvailable = canStartNextBatch(state)
   const pct = Math.round((learnedCount / 20) * 100)
-  const sessionWords = getSessionWords(state),
-    reviewCount = getReviewCount(state),
-    newCount = 20 - reviewCount
+  const newWords = getNewWords(state),
+    reviewCount = state.dailyWordPlan?.reviewCount ?? 0,
+    newCount = state.dailyWordPlan?.newCount ?? 0
   const weekKeys = getWeekDateKeys(state.activeDate),
     continuity = previousSession ? choiceContinuations[previousSession.storyChoice] : undefined
-  const date = new Intl.DateTimeFormat('zh-CN', {
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long',
-  }).format(new Date())
+  const date = formatSessionDate(state.activeDate)
   return (
     <div className="page dashboard-page">
       <header className="page-title">
@@ -77,14 +82,20 @@ export function Dashboard({
           <div className="hero-badges">
             <span>
               <Sparkles size={14} />
-              今日旅程
+              今日第 {state.activeBatch} 组
             </span>
             <span>约 {state.dailyMinutes} 分钟</span>
           </div>
-          <h2>{state.completed ? '今日冒险已完成！' : '20 个词，正在等待被写进故事。'}</h2>
+          <h2>
+            {state.completed
+              ? `第 ${state.activeBatch} 组已完成！`
+              : state.dailyWordPlan
+                ? `20 个新词正在等待被写进故事${reviewCount ? `，另有 ${reviewCount} 个到期复习词` : ''}。`
+                : '正在准备你的专属词汇…'}
+          </h2>
           <p>
             {state.completed
-              ? '你守住了连续学习记录。明天，故事会继承今天的选择。'
+              ? '可以继续学习下一组，今天不设组数上限。'
               : '先认识它们、读出它们，然后用它们打开古老观测站的门。'}
           </p>
           <div className="hero-progress">
@@ -103,13 +114,29 @@ export function Dashboard({
               <i style={{ width: `${pct}%` }} />
             </div>
           </div>
-          <button
-            className="light-button"
-            onClick={() => setPage(learnedCount === 20 ? 'quiz' : 'learn')}
-          >
-            {learnedCount ? '继续今日学习' : '开始今日学习'}
-            <ArrowRight size={18} />
-          </button>
+          {state.completed ? (
+            <button
+              className="light-button"
+              disabled={!nextBatchAvailable}
+              onClick={onStartNextBatch}
+            >
+              <FastForward size={18} />
+              下一组词 · 再学 20 个
+            </button>
+          ) : (
+            <button
+              className="light-button"
+              disabled={!state.dailyWordPlan}
+              onClick={() => setPage(learnedCount === 20 ? 'quiz' : 'learn')}
+            >
+              {state.dailyWordPlan
+                ? learnedCount
+                  ? '继续当前学习'
+                  : `开始第 ${state.activeBatch} 组`
+                : '正在加载今日计划…'}
+              <ArrowRight size={18} />
+            </button>
+          )}
         </div>
         <div className="hero-art">
           <div className="moon-orb" />
@@ -131,15 +158,15 @@ export function Dashboard({
         <section className="panel today-panel">
           <div className="panel-head">
             <div>
-              <p className="eyebrow">TODAY'S WORDS</p>
-              <h3>今日目标词</h3>
+              <p className="eyebrow">TODAY'S WORDS · GROUP {state.activeBatch}</p>
+              <h3>本组目标词</h3>
             </div>
             <button onClick={() => setPage('learn')}>
               查看全部 <ChevronRight size={16} />
             </button>
           </div>
           <div className="word-preview">
-            {sessionWords.slice(0, 6).map((w, i) => (
+            {newWords.slice(0, 6).map((w, i) => (
               <button key={w.word} onClick={() => setPage('learn')}>
                 <span className={`word-index ${state.learned[w.word] ? 'done' : ''}`}>
                   {state.learned[w.word] ? <Check size={14} /> : i + 1}

@@ -111,6 +111,8 @@ test('settings provides install guidance and generated cache metadata', async ({
   expect(source).toContain('wordquest-precache-')
   expect(source).toContain('/assets/')
   expect(source).toContain('/icons/icon-512.png')
+  expect(source).toContain("url.pathname.startsWith('/api/')")
+  expect(source).toContain("event.request.headers.has('authorization')")
 
   await page.getByRole('button', { name: '设置', exact: true }).click()
   await page.getByRole('button', { name: /查看安装方法/ }).click()

@@ -4,9 +4,9 @@ import { parseGeneratedStory } from './story-schema.js'
 
 const valid = {
   title: 'A Door in the Rain',
-  titleZh: 'A Door in the Rain',
+  titleZh: '雨中的门',
   summary: 'Mia finds a door.',
-  paragraphs: [{ en: 'Mia discovered a door.', zh: 'Mia found a door.' }],
+  paragraphs: [{ en: 'Mia discovered a door.', zh: '米娅发现了一扇门。' }],
   choices: [
     {
       id: 'open-door',

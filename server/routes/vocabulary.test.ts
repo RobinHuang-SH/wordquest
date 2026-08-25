@@ -20,12 +20,18 @@ const auth: AuthService = {
   authenticate: vi.fn(async () => ({ id: 'user-1', email: 'mia@example.com', displayName: 'Mia' })),
   logout: vi.fn(),
 }
-const sync: SyncService = { getState: vi.fn(), updateState: vi.fn(), listConflicts: vi.fn() }
+const sync: SyncService = {
+  getState: vi.fn(),
+  importState: vi.fn(),
+  updateState: vi.fn(),
+  listConflicts: vi.fn(),
+}
 const wordId = '00000000-0000-4000-8000-000000000002'
 const vocabulary: VocabularyService = {
   getDailyPlan: vi.fn(async (_userId, input) => ({
     sessionId: 'session-1',
     date: input.date,
+    batch: input.batch ?? 1,
     status: 'GENERATED',
     newCount: 15,
     reviewCount: 5,
@@ -101,5 +107,26 @@ describe('vocabulary routes', () => {
     })
     expect(response.statusCode).toBe(200)
     expect(response.json()).toMatchObject({ memoryScore: 68, reviewIntervalDays: 1 })
+  })
+
+  it('forwards an explicit study batch', async () => {
+    app = await buildApp({
+      env,
+      logger: false,
+      authService: auth,
+      syncService: sync,
+      vocabularyService: vocabulary,
+    })
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/daily-session?date=2026-07-14&mix=20%2B0&batch=7',
+      headers: { authorization: 'Bearer token' },
+    })
+    expect(response.statusCode).toBe(200)
+    expect(vocabulary.getDailyPlan).toHaveBeenLastCalledWith('user-1', {
+      date: '2026-07-14',
+      batch: 7,
+      mix: '20+0',
+    })
   })
 })

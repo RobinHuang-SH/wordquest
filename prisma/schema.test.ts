@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest'
 const expectedModels = [
   'User',
   'Vocabulary',
+  'VocabularyCollection',
+  'VocabularyCollectionWord',
   'UserWordState',
   'DailySession',
   'DailySessionWord',

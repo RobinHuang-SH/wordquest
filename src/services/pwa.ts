@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Capacitor } from '@capacitor/core'
 
 type InstallChoice = { outcome: 'accepted' | 'dismissed'; platform: string }
 
@@ -20,12 +21,14 @@ export type PwaLifecycle = {
 
 export function isStandaloneMode() {
   return (
+    Capacitor.isNativePlatform() ||
     window.matchMedia?.('(display-mode: standalone)').matches ||
     Boolean((navigator as NavigatorWithStandalone).standalone)
   )
 }
 
 export function usePwaLifecycle(): PwaLifecycle {
+  const nativePlatform = Capacitor.isNativePlatform()
   const [online, setOnline] = useState(() => navigator.onLine)
   const [installed, setInstalled] = useState(isStandaloneMode)
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
@@ -63,10 +66,10 @@ export function usePwaLifecycle(): PwaLifecycle {
       })
     }
 
-    if ('serviceWorker' in navigator) {
+    if (!nativePlatform && 'serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange)
       navigator.serviceWorker
-        .register('/sw.js')
+        .register(`${import.meta.env.BASE_URL}sw.js`)
         .then((nextRegistration) => {
           registration = nextRegistration
           if (registration.waiting) setWaitingWorker(registration.waiting)
@@ -84,7 +87,7 @@ export function usePwaLifecycle(): PwaLifecycle {
       navigator.serviceWorker?.removeEventListener('controllerchange', handleControllerChange)
       registration?.removeEventListener('updatefound', inspectInstallingWorker)
     }
-  }, [])
+  }, [nativePlatform])
 
   const requestInstall = useCallback(async () => {
     if (!installPrompt) return false

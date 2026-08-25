@@ -28,13 +28,19 @@ const auth: AuthService = {
   })),
   authenticate: vi.fn(async (token) => {
     if (token !== 'token')
-      throw Object.assign(new Error('????'), { statusCode: 401, code: 'AUTH_REQUIRED' })
+      throw Object.assign(new Error('请先登录'), { statusCode: 401, code: 'AUTH_REQUIRED' })
     return user
   }),
   logout: vi.fn(async () => undefined),
 }
 const sync: SyncService = {
   getState: vi.fn(async () => null),
+  importState: vi.fn(async (_id, input) => ({
+    revision: input.baseRevision + 1,
+    state: input.state,
+    clientUpdatedAt: input.clientUpdatedAt,
+    sourceDeviceId: input.deviceId,
+  })),
   updateState: vi.fn(async (_id, input) => ({
     revision: input.baseRevision + 1,
     state: input.state,
@@ -84,5 +90,16 @@ describe('auth and sync routes', () => {
     })
     expect(response.statusCode).toBe(200)
     expect(response.json()).toMatchObject({ revision: 3, state: { streak: 4 } })
+  })
+  it('rate limits repeated authentication attempts for one account and address', async () => {
+    app = await buildApp({ env, logger: false, authService: auth, syncService: sync })
+    const payload = { email: 'mia@example.com', password: 'password123', deviceId: 'browser' }
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const response = await app.inject({ method: 'POST', url: '/api/v1/auth/login', payload })
+      expect(response.statusCode).toBe(200)
+    }
+    const limited = await app.inject({ method: 'POST', url: '/api/v1/auth/login', payload })
+    expect(limited.statusCode).toBe(429)
+    expect(limited.json()).toMatchObject({ error: { code: 'AUTH_RATE_LIMITED' } })
   })
 })

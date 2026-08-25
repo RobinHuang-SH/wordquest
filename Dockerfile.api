@@ -1,0 +1,22 @@
+FROM public.ecr.aws/docker/library/node:22-bookworm-slim
+
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+WORKDIR /app
+
+RUN corepack enable
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates openssl \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml prisma.config.ts ./
+COPY prisma ./prisma
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+COPY server ./server
+COPY src/data.ts ./src/data.ts
+RUN pnpm build:api
+
+EXPOSE 3001
+
+CMD ["sh", "-c", "pnpm db:migrate:deploy && node dist-server/index.js"]

@@ -34,10 +34,11 @@ const planWordSchema = {
 } as const
 const planSchema = {
   type: 'object',
-  required: ['sessionId', 'date', 'status', 'newCount', 'reviewCount', 'words'],
+  required: ['sessionId', 'date', 'batch', 'status', 'newCount', 'reviewCount', 'words'],
   properties: {
     sessionId: { type: 'string' },
     date: { type: 'string', format: 'date' },
+    batch: { type: 'integer', minimum: 1 },
     status: { type: 'string' },
     newCount: { type: 'integer' },
     reviewCount: { type: 'integer' },
@@ -51,7 +52,11 @@ export function registerVocabularyRoutes(
   vocabulary: VocabularyService,
 ) {
   app.get<{
-    Querystring: { date: string; mix?: '20+0' | '15+5' | '10+10' | 'dynamic' }
+    Querystring: {
+      date: string
+      batch?: number
+      mix?: '20+0' | '15+5' | '10+10' | 'dynamic'
+    }
   }>(
     '/api/v1/daily-session',
     {
@@ -64,16 +69,24 @@ export function registerVocabularyRoutes(
           required: ['date'],
           properties: {
             date: { type: 'string', format: 'date' },
+            batch: { type: 'integer', minimum: 1, maximum: 10000, default: 1 },
             mix: { type: 'string', enum: ['20+0', '15+5', '10+10', 'dynamic'], default: '15+5' },
           },
         },
-        response: { 200: planSchema, 401: errorResponseSchema },
+        response: {
+          200: planSchema,
+          400: errorResponseSchema,
+          401: errorResponseSchema,
+          409: errorResponseSchema,
+          503: errorResponseSchema,
+        },
       },
     },
     async (request) => {
       const user = await authenticatedUser(request, auth)
       return vocabulary.getDailyPlan(user.id, {
         date: request.query.date,
+        batch: request.query.batch ?? 1,
         mix: request.query.mix ?? '15+5',
       })
     },

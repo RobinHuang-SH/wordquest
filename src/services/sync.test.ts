@@ -24,6 +24,19 @@ describe('client sync persistence', () => {
     saveAccountSession(null)
     expect(loadAccountSession()).toBeNull()
   })
+  it('discards expired or malformed account sessions', () => {
+    localStorage.setItem(
+      'wordquest-auth',
+      JSON.stringify({
+        token: 'expired',
+        expiresAt: '2020-01-01T00:00:00Z',
+        revision: 1,
+        user: { id: '1' },
+      }),
+    )
+    expect(loadAccountSession()).toBeNull()
+    expect(localStorage.getItem('wordquest-auth')).toBeNull()
+  })
   it('coalesces offline changes into the latest queue item', () => {
     enqueueSync(makeState({ streak: 2 }), 1, '2026-07-13T01:00:00Z')
     enqueueSync(makeState({ streak: 3 }), 1, '2026-07-13T02:00:00Z')

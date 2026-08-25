@@ -7,14 +7,18 @@ import {
   Headphones,
   Languages,
   LockKeyhole,
+  LoaderCircle,
   Pause,
   RotateCcw,
+  RefreshCw,
   Sparkles,
+  WandSparkles,
   Volume2,
 } from 'lucide-react'
-import { storyChoices, storyVariants, todayWords } from '../data'
+import { storyChoices, storyVariants } from '../data'
 import type { AppState, DailySession, Page, Word } from '../domain/models'
-import { choiceContinuations, storyLengthLabels } from '../domain/sessions'
+import { choiceContinuations, getSessionKey, storyLengthLabels } from '../domain/sessions'
+import { getNewWords } from '../domain/learning'
 import { speak } from '../services/speech'
 
 const ui = {
@@ -82,20 +86,27 @@ export function Story({
   previousSession,
   setPage,
   notify,
+  storyLoading = false,
+  storyError = '',
+  retryStory = () => undefined,
+  onStartNextBatch = () => undefined,
 }: {
   state: AppState
   completeToday: (choice: string) => void
   previousSession?: DailySession
   setPage: (p: Page) => void
   notify: (s: string) => void
+  storyLoading?: boolean
+  storyError?: string
+  retryStory?: () => void
+  onStartNextBatch?: () => void
 }) {
   const [translation, setTranslation] = useState(false)
   const [playing, setPlaying] = useState(false)
   const generated = state.dailyStory?.date === state.activeDate ? state.dailyStory : null
   const activeStory = generated?.paragraphs ?? storyVariants[state.storyLength]
   const activeChoices = generated?.choices ?? storyChoices
-  const targetWords =
-    state.dailyWordPlan?.date === state.activeDate ? state.dailyWordPlan.words : todayWords
+  const targetWords = getNewWords(state)
   const storyInfo = storyLengthLabels[state.storyLength]
   const continuity = previousSession ? choiceContinuations[previousSession.storyChoice] : undefined
   const storyWordCount = activeStory.reduce(
@@ -128,6 +139,32 @@ export function Story({
           <button className="primary" onClick={() => setPage('quiz')}>
             {ui.startQuiz} <ArrowRight />
           </button>
+        </div>
+      </div>
+    )
+  if (!generated)
+    return (
+      <div className="page centered-page">
+        <div className="locked-card">
+          {storyLoading ? <LoaderCircle className="spin" /> : <WandSparkles />}
+          <p className="eyebrow">专属故事</p>
+          <h1>{storyLoading ? '正在把 20 个新词写进故事…' : '故事还没有准备好'}</h1>
+          <p>
+            {storyError ||
+              (targetWords.length === 20 &&
+              targetWords.every((word) => Boolean(state.learned[word.word]))
+                ? '通常需要几十秒，请稍候。'
+                : '完成本组 20 个新词后，故事会自动重新生成。')}
+          </p>
+          {storyError ? (
+            <button className="primary" onClick={retryStory}>
+              <RefreshCw /> 重新生成
+            </button>
+          ) : !storyLoading ? (
+            <button className="primary" onClick={() => setPage('learn')}>
+              继续学习新词 <ArrowRight />
+            </button>
+          ) : null}
         </div>
       </div>
     )
@@ -236,7 +273,11 @@ export function Story({
                 aria-pressed={state.storyChoice === choice.id}
                 onClick={() => {
                   completeToday(choice.id)
-                  notify(state.sessions[state.activeDate] ? ui.recordUpdated : ui.recordSaved)
+                  notify(
+                    state.sessions[getSessionKey(state.activeDate, state.activeBatch)]
+                      ? ui.recordUpdated
+                      : ui.recordSaved,
+                  )
                 }}
               >
                 <span>{['1', '2', '3'][index]}</span>
@@ -256,7 +297,7 @@ export function Story({
                 <b>{ui.choiceSaved}</b>
                 <small>{ui.tomorrowContinues}</small>
               </span>
-              <button onClick={() => setPage('report')}>{ui.viewSummary}</button>
+              <button onClick={onStartNextBatch}>学习下一组</button>
             </div>
           )}
         </section>

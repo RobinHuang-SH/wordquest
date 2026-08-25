@@ -24,7 +24,8 @@ import { makeMarkdown } from '../services/markdown'
 import { downloadText } from '../services/download'
 
 function HistoryCalendar({ state }: { state: AppState }) {
-  const sessionDates = Object.keys(state.sessions).sort()
+  const allSessions = Object.values(state.sessions)
+  const sessionDates = [...new Set(allSessions.map((session) => session.date))].sort()
   const [selectedDate, setSelectedDate] = useState(sessionDates.at(-1) || state.activeDate)
   const [visibleMonth, setVisibleMonth] = useState(() => state.activeDate.slice(0, 7))
   const [year, month] = visibleMonth.split('-').map(Number)
@@ -35,7 +36,10 @@ function HistoryCalendar({ state }: { state: AppState }) {
     ...Array(offset).fill(null),
     ...Array.from({ length: daysInMonth }, (_, index) => String(index + 1).padStart(2, '0')),
   ]
-  const selectedSession = state.sessions[selectedDate]
+  const selectedSessions = allSessions
+    .filter((session) => session.date === selectedDate)
+    .sort((left, right) => left.batch - right.batch)
+  const selectedSession = selectedSessions.at(-1)
   const moveMonth = (amount: number) => {
     const next = new Date(year, month - 1 + amount, 1)
     setVisibleMonth(next.getFullYear() + '-' + String(next.getMonth() + 1).padStart(2, '0'))
@@ -49,7 +53,9 @@ function HistoryCalendar({ state }: { state: AppState }) {
             <CalendarDays />
             学习日历
           </h3>
-          <span>共保存 {sessionDates.length} 个学习日，同一天完成多次只更新一条记录。</span>
+          <span>
+            共保存 {sessionDates.length} 个学习日、{allSessions.length} 组学习记录。
+          </span>
         </div>
         <div className="calendar-nav">
           <button aria-label="上个月" onClick={() => moveMonth(-1)}>
@@ -72,7 +78,7 @@ function HistoryCalendar({ state }: { state: AppState }) {
         {cells.map((day, index) => {
           if (!day) return <span className="calendar-blank" key={'blank-' + index} />
           const dateKey = visibleMonth + '-' + day,
-            session = state.sessions[dateKey]
+            session = allSessions.some((item) => item.date === dateKey)
           const className =
             'calendar-day' +
             (session ? ' has-session' : '') +
@@ -100,7 +106,9 @@ function HistoryCalendar({ state }: { state: AppState }) {
         <div className="session-detail">
           <div>
             <p className="eyebrow">SESSION DETAIL</p>
-            <h4>{formatSessionDate(selectedDate)}</h4>
+            <h4>
+              {formatSessionDate(selectedDate)} · 第 {selectedSession.batch} 组
+            </h4>
             <span>
               {choiceContinuations[selectedSession.storyChoice]?.title ||
                 storyChoices.find((choice) => choice.id === selectedSession.storyChoice)?.title ||
@@ -148,7 +156,11 @@ export function Report({ state, notify }: { state: AppState; notify: (s: string)
   }
   const weeklyReport = createWeeklyReport(state),
     weekKeys = getWeekDateKeys(state.activeDate)
-  const weekValues = weekKeys.map((key) => state.sessions[key]?.learnedCount || 0)
+  const weekValues = weekKeys.map((key) =>
+    Object.values(state.sessions)
+      .filter((session) => session.date === key)
+      .reduce((total, session) => total + session.learnedCount, 0),
+  )
   const weekWords = weeklyReport.learnedWords,
     weekStories = weeklyReport.storyCount
   const range =
@@ -176,7 +188,7 @@ export function Report({ state, notify }: { state: AppState; notify: (s: string)
           </h2>
           <span>
             {weekStories
-              ? '本周已有 ' + weekStories + ' 天留下完整记录，继续保持这样的节奏！'
+              ? '本周已有 ' + weekStories + ' 组完整记录，继续保持这样的节奏！'
               : '完成今日故事选择后，这里会生成第一条学习记录。'}
           </span>
         </div>

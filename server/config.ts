@@ -10,9 +10,14 @@ export interface ApiConfig {
   API_BASE_URL: string
   DOCS_ENABLED: boolean
   DATABASE_URL: string
+  AGNES_API_KEY: string
   LLM_API_KEY: string
   LLM_BASE_URL: string
   LLM_MODEL: string
+  LLM_API_STYLE: 'responses' | 'chat-completions'
+  LLM_PROVIDER: string
+  LLM_OUTPUT_MODE: 'json-schema' | 'prompt-only'
+  LLM_SYSTEM_PROMPT: string
   LLM_TIMEOUT_MS: number
   LLM_MAX_RETRIES: number
   LLM_RATE_LIMIT_PER_MINUTE: number
@@ -40,10 +45,23 @@ export const configSchema = {
       type: 'string',
       default: 'postgresql://wordquest:wordquest@localhost:5432/wordquest?schema=public',
     },
+    AGNES_API_KEY: { type: 'string', default: '' },
     LLM_API_KEY: { type: 'string', default: '' },
-    LLM_BASE_URL: { type: 'string', default: 'https://api.openai.com/v1' },
-    LLM_MODEL: { type: 'string', default: 'gpt-4.1-mini' },
-    LLM_TIMEOUT_MS: { type: 'integer', minimum: 1000, default: 15000 },
+    LLM_BASE_URL: { type: 'string', default: 'https://apihub.agnes-ai.com/v1' },
+    LLM_MODEL: { type: 'string', default: 'agnes-2.0-flash' },
+    LLM_API_STYLE: {
+      type: 'string',
+      enum: ['responses', 'chat-completions'],
+      default: 'chat-completions',
+    },
+    LLM_PROVIDER: { type: 'string', default: 'agnes' },
+    LLM_OUTPUT_MODE: {
+      type: 'string',
+      enum: ['json-schema', 'prompt-only'],
+      default: 'prompt-only',
+    },
+    LLM_SYSTEM_PROMPT: { type: 'string', default: '' },
+    LLM_TIMEOUT_MS: { type: 'integer', minimum: 1000, default: 60000 },
     LLM_MAX_RETRIES: { type: 'integer', minimum: 0, maximum: 5, default: 2 },
     LLM_RATE_LIMIT_PER_MINUTE: { type: 'integer', minimum: 1, default: 5 },
   },

@@ -144,16 +144,16 @@ export function SettingsPage({
           <label>
             <span>
               <b>每日目标</b>
-              <small>固定 20 词，调整新词与复习比例</small>
+              <small>新词固定 20 个，复习词按记忆计划另外追加</small>
             </span>
             <select
               value={state.wordMix}
               onChange={(e) => patch({ wordMix: e.target.value as WordMix })}
             >
-              <option value="15+5">15 新词 + 5 复习</option>
-              <option value="20+0">20 个新词</option>
-              <option value="10+10">10 新词 + 10 复习</option>
-              <option value="dynamic">AI 动态安排</option>
+              <option value="15+5">20 新词 + 最多 5 个复习</option>
+              <option value="20+0">20 新词 · 暂不复习</option>
+              <option value="10+10">20 新词 + 最多 10 个复习</option>
+              <option value="dynamic">20 新词 + 智能复习</option>
             </select>
           </label>
           <label>
@@ -347,7 +347,7 @@ export function SettingsPage({
         </section>
         <section className="panel settings-section about">
           <Logo />
-          <p>每天学 20 个词，把它们变成属于你的英语故事。</p>
+          <p>每组学 20 个新词，把它们变成属于你的英语故事。</p>
           <span>WordQuest MVP · 本地优先版本</span>
         </section>
       </div>

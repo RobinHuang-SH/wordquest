@@ -83,6 +83,7 @@ model User {
   newWordRatio          Float                  @default(0.75) @map("new_word_ratio")
   storyGenre            String                 @default("adventure") @map("story_genre") @db.VarChar(50)
   timezone              String                 @default("Asia/Shanghai") @db.VarChar(64)
+  lastExtraStudyDate    DateTime?              @map("last_extra_study_date") @db.Date
   createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
   wordStates            UserWordState[]
@@ -99,29 +100,59 @@ model User {
 }
 
 model Vocabulary {
-  id                    String                 @id @default(uuid()) @db.Uuid
-  word                  String                 @unique @db.VarChar(100)
-  lemma                 String                 @db.VarChar(100)
-  partOfSpeech          String                 @map("part_of_speech") @db.VarChar(30)
+  id                    String                     @id @default(uuid()) @db.Uuid
+  word                  String                     @unique @db.VarChar(100)
+  lemma                 String                     @db.VarChar(100)
+  partOfSpeech          String                     @map("part_of_speech") @db.VarChar(30)
   level                 EnglishLevel
-  meaningZh             String                 @map("meaning_zh") @db.Text
-  definitionEn          String                 @map("definition_en") @db.Text
-  phoneticUs            String?                @map("phonetic_us") @db.VarChar(100)
-  phoneticUk            String?                @map("phonetic_uk") @db.VarChar(100)
-  frequencyRank         Int?                   @map("frequency_rank")
-  exampleSentence       String                 @map("example_sentence") @db.Text
-  sourceName            String                 @default("wordquest-curated") @map("source_name") @db.VarChar(100)
-  sourceLicense         String                 @default("internal-curated") @map("source_license") @db.VarChar(100)
-  collection            String                 @default("daily-frequency") @db.VarChar(50)
-  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  meaningZh             String                     @map("meaning_zh") @db.Text
+  definitionEn          String                     @map("definition_en") @db.Text
+  phoneticUs            String?                    @map("phonetic_us") @db.VarChar(100)
+  phoneticUk            String?                    @map("phonetic_uk") @db.VarChar(100)
+  frequencyRank         Int?                       @map("frequency_rank")
+  exampleSentence       String                     @map("example_sentence") @db.Text
+  sourceName            String                     @default("wordquest-curated") @map("source_name") @db.VarChar(100)
+  sourceLicense         String                     @default("internal-curated") @map("source_license") @db.VarChar(100)
+  collection            String                     @default("daily-frequency") @db.VarChar(50)
+  createdAt             DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(3)
   userStates            UserWordState[]
   sessionWords          DailySessionWord[]
   pronunciationAttempts PronunciationAttempt[]
+  collections           VocabularyCollectionWord[]
 
   @@index([lemma])
   @@index([level, frequencyRank])
   @@map("vocabulary")
+}
+
+model VocabularyCollection {
+  key           String                     @id @db.VarChar(50)
+  name          String                     @db.VarChar(100)
+  description   String                     @db.Text
+  sourceUrl     String                     @map("source_url") @db.Text
+  sourceLicense String                     @map("source_license") @db.VarChar(100)
+  createdAt     DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  words         VocabularyCollectionWord[]
+
+  @@map("vocabulary_collections")
+}
+
+model VocabularyCollectionWord {
+  collectionKey String               @map("collection_key") @db.VarChar(50)
+  vocabularyId  String               @map("vocabulary_id") @db.Uuid
+  rank          Int?
+  gradeBand     String?              @map("grade_band") @db.VarChar(30)
+  metadataJson  Json                 @default("{}") @map("metadata_json")
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  collection    VocabularyCollection @relation(fields: [collectionKey], references: [key], onDelete: Cascade)
+  vocabulary    Vocabulary           @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+
+  @@id([collectionKey, vocabularyId])
+  @@index([vocabularyId])
+  @@index([collectionKey, gradeBand, rank])
+  @@map("vocabulary_collection_words")
 }
 
 model UserWordState {
@@ -156,6 +187,7 @@ model DailySession {
   id                 String             @id @default(uuid()) @db.Uuid
   userId             String             @map("user_id") @db.Uuid
   sessionDate        DateTime           @map("session_date") @db.Date
+  batchNumber        Int                @default(1) @map("batch_number")
   status             SessionStatus      @default(GENERATED)
   newWordCount       Int                @default(15) @map("new_word_count")
   reviewWordCount    Int                @default(5) @map("review_word_count")
@@ -171,7 +203,7 @@ model DailySession {
   storyNodes         StoryNode[]        @relation("SessionStoryNodes")
   storyGeneration    StoryGeneration?
 
-  @@unique([userId, sessionDate])
+  @@unique([userId, sessionDate, batchNumber])
   @@index([userId, status, sessionDate])
   @@map("daily_sessions")
 }

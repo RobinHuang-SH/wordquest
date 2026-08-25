@@ -18,6 +18,7 @@ describe('vocabulary API', () => {
       json: async () => ({
         sessionId: 'session-1',
         date: '2026-07-13',
+        batch: 1,
         newCount: 15,
         reviewCount: 5,
         words: [
@@ -44,7 +45,7 @@ describe('vocabulary API', () => {
     expect(plan).toMatchObject({ sessionId: 'session-1', mix: '15+5', reviewCount: 5 })
     expect(plan.words[0]).toMatchObject({ id: 'word-1', pos: 'v.', exampleZh: '??' })
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:3001/api/v1/daily-session?date=2026-07-13&mix=15%2B5',
+      'http://localhost:3001/api/v1/daily-session?date=2026-07-13&mix=15%2B5&batch=1',
       expect.objectContaining({
         headers: expect.objectContaining({ authorization: 'Bearer token-1' }),
       }),
@@ -79,5 +80,24 @@ describe('vocabulary API', () => {
       result: 'FUZZY',
       sessionId: 'session-1',
     })
+  })
+
+  it('requests an explicit same-day batch number', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        sessionId: 'session-extra',
+        date: '2026-07-14',
+        batch: 3,
+        newCount: 20,
+        reviewCount: 0,
+        words: [],
+      }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await loadDailyPlan(session, '2026-07-14', '20+0', 3)
+
+    expect(fetchMock.mock.calls[0][0]).toContain('date=2026-07-14&mix=20%2B0&batch=3')
   })
 })
